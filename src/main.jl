@@ -1,10 +1,14 @@
 using JSON
+using Symbolics
+
+# Объявляем переменные
+@variables x1 y1 x2 y2
 
 # Интерпретации функций
 interpretations = Dict(
-    "f" => (x) -> "(($x)^2 + $x + 2)",  # f(x, y) = xy + y^2
+    "f" => (x) -> "($x^2 + $x)",  # f(x, y) = xy + y^2
     "g" => (y) -> "($y + 1)",               # g(y) = y + 1
-    "h" => (x) -> "($x^3 + 13)",     # h(x, y) = x^2 + 2y
+    "h" => (x) -> "($x^3 + 1)",     # h(x, y) = x^2 + 2y
     "u" => (y) -> "($y + 12)"               # u(y) = y + 12
 )
 
@@ -102,19 +106,14 @@ json_string_first = """
 json_string_second= """
 [
     {
-        "value": "f",
+        "value": "g",
         "childs": [
             {
-                "value": "f",
+                "value": "u",
                 "childs": [
                     {
-                        "value": "f",
-                        "childs": [
-                            {
-                                "value": "x1",
-                                "childs": []
-                            }
-                        ]
+                        "value": "x2",
+                        "childs": []
                     }
                 ]
             }
@@ -124,7 +123,7 @@ json_string_second= """
         "value": "h",
         "childs": [
             {
-                "value": "y1",
+                "value": "y2",
                 "childs": []
             }
         ]
@@ -150,13 +149,13 @@ function parse_it!(json_string::String)
     println("\nИнтерпретации функций:")
     println(interpretation_to_string(interpretations))
 
-    # Применение интерпретации к левой части
+    # Применение интерпретации к левой и правой части
     left_polynomial = apply_interpretation(left_term, interpretations)
-    println("\nЛевая часть после интерпретации: ", left_polynomial)
-
-    # Применение интерпретации к правой части
     right_polynomial = apply_interpretation(right_term, interpretations)
-    println("Правая часть после интерпретации: ", right_polynomial)
+    #println("\nПодстановка интерпретации: ", Symbolics.simplify(left_polynomial), " = ", right_polynomial)
+    println("\nПодстановка интерпретации: ", Symbolics.simplify(eval(Meta.parse(left_polynomial))),
+    " = ", Symbolics.simplify(eval(Meta.parse(right_polynomial))))
 end
 
 parse_it!(json_string_first)
+parse_it!(json_string_second)
