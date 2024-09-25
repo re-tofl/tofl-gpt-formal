@@ -1,26 +1,21 @@
 using JSON
 using Symbolics
-#include(joinpath(@__DIR__,"interpretation.jl"))
-#include(joinpath(@__DIR__,"structures.jl"))
-#include(joinpath(@__DIR__,"parsing_terms.jl"))
-#include(joinpath(@__DIR__,"json_and_interpret_hardcode.jl"))
-#include(joinpath(@__DIR__,"interpret_parse.jl"))
 
-#########################stuctures
-# Структура для термов
+######################### Structures
+# Structure for terms
 struct Term
     name::String
     childs::Vector{Term}
 end
-##########################json_
 
-# Захардкоженная JSON строка с функциями f и g
+########################## JSON Data
+# Hardcoded JSON string with functions f, g, h, u
 json_interpret = """
 {
   "functions": [
     {
       "name": "f",
-      "variables": ["x, y, z"],
+      "variables": ["x", "y", "z"],
       "expression": "(x^2 + x + 2 * y + z)"
     },
     {
@@ -42,7 +37,7 @@ json_interpret = """
 }
 """
 
-# Пример JSON, содержащий левую и правую часть TRS
+# Example JSON containing the left and right parts of the TRS
 json_string_first = """
 [
     {
@@ -64,6 +59,14 @@ json_string_first = """
                         "childs": []
                     }
                 ]
+            },
+            {
+                    "value": "x2",
+                    "childs": []
+            },
+            {
+                    "value": "x3",
+                    "childs": []
             }
         ]
     },
@@ -106,148 +109,150 @@ json_string_second= """
     }
 ]
 """
-##########################interpret_parse
-# Функция для парсинга интерпретаций из JSON и подстановки переменных TRS
+
+########################## Function to Display Interpretations
+function display_interpretations()
+    parsed_data = JSON.parse(json_interpret)
+    println("Исходные интерпретации:")
+    for func in parsed_data["functions"]
+        func_name = func["name"]
+        variables = split(func["variables"][1], ", ")  # Split variables by commas
+        expression = func["expression"]
+        vars_str = join(variables, ", ")
+        println("$func_name($vars_str) = $expression")
+    end
+    println()
+end
+
+########################## Function to Parse and Interpret TRS
+function parse_and_interpret(json_string::String, interpretations::Dict{String, Function})
+    parsed_json = JSON.parse(json_string)
+
+    # Parse the left and right parts of the TRS
+    left_term = parse_term(parsed_json[1])
+    right_term = parse_term(parsed_json[2])
+
+    # Create a var_map dictionary that maps variables from TRS to variables in interpretations
+    var_map = Dict{String, String}()
+
+    # Collect variables from the TRS and add them to var_map
+    variable_names = Set{String}()
+    function collect_vars(term::Term)
+        if isempty(term.childs)
+            # If the term is a variable, add its name to var_map and variable_names
+            var_map[term.name] = term.name
+            push!(variable_names, term.name)
+        else
+            # The term is a function, process its children
+            for child in term.childs
+                collect_vars(child)
+            end
+        end
+    end
+
+    # Collect variables from left and right terms
+    collect_vars(left_term)
+    collect_vars(right_term)
+
+    # Now, declare variables dynamically
+    # Convert variable names to Symbols
+    variable_symbols = Symbol.(collect(variable_names))
+    # Declare variables with Symbolics.@variables using @eval
+    @eval @variables $(variable_symbols...)
+
+    # Parse interpretations with variables from TRS, passing var_map
+    parse_interpretations(interpretations, var_map)
+
+    # Apply interpretation to left and right parts of TRS
+    interpreted_left = apply_interpretation(left_term, interpretations, var_map)
+    interpreted_right = apply_interpretation(right_term, interpretations, var_map)
+
+    # Output the TRS rule in human-readable form
+    left_term_str = term_to_string(left_term)
+    right_term_str = term_to_string(right_term)
+    println("\nПравило TRS:")
+    println("$left_term_str -> $right_term_str")
+
+    # Parse the interpreted expressions into Symbolics expressions
+    left_expr = Symbolics.simplify(eval(Meta.parse(interpreted_left)))
+    right_expr = Symbolics.simplify(eval(Meta.parse(interpreted_right)))
+
+    # Compute the difference and simplify
+    difference = Symbolics.simplify(left_expr - right_expr)
+
+    # Output the simplified expression
+    println("\nУпрощенное выражение:")
+    println("$(left_expr) = $(right_expr)")
+    println("После упрощения:")
+    println("$(difference) = 0")
+end
+
+########################## Function to Parse Interpretations
 function parse_interpretations(interpretations::Dict{String, Function}, var_map::Dict{String, String})
     parsed_data = JSON.parse(json_interpret)
 
     for func in parsed_data["functions"]
         func_name = func["name"]
-        variables = split(func["variables"][1], ", ")  # Разбиваем переменные по запятой
+        variables = split(func["variables"][1], ", ")  # Split variables by commas
         expression = func["expression"]
 
-        # Создаем функцию с нужным количеством переменных
+        # Create a function with the required number of variables
         interpretations[func_name] = (vars...) -> begin
             expr = expression
-            # Заменяем переменные в выражении на соответствующие переменные из TRS (var_map)
+            # Replace variables in the expression with corresponding variables from TRS (var_map)
             for (i, var) in enumerate(variables)
-                expr = replace(expr, var => get(var_map, vars[i], vars[i]))  # Используем переменные TRS
+                expr = replace(expr, var => vars[i])  # Use TRS variables
             end
             return expr
         end
     end
 end
 
-##########################################parsing_terms
-# Функция для парсинга термов из JSON
+########################################## Function to Parse Terms
+# Function to parse terms from JSON
 function parse_term(json::Dict)
     childs = [parse_term(child) for child in json["childs"]]
     return Term(json["value"], childs)
 end
 
-# Объявляем переменные для библиотеки упрощения полиномов
-@variables x1 y1 x2 y2
-
-# Функция для отображения терма в человекочитаемом виде
+# Function to display a term in human-readable form
 function term_to_string(term::Term)
     if isempty(term.childs)
-        return term.name  # Если терм — переменная, возвращаем её имя
+        return term.name  # If the term is a variable, return its name
     else
-        # Рекурсивно обрабатываем дочерние термы
+        # Recursively process child terms
         child_strings = [term_to_string(child) for child in term.childs]
-        return "$(term.name)(" * join(child_strings, ", ") * ")"  # Собираем строку в формате f(x, g(y))
+        return "$(term.name)(" * join(child_strings, ", ") * ")"  # Assemble the string in the format f(x, g(y))
     end
 end
 
-
-# Функция для парсинга и интерпретации TRS
-function parse_and_interpret(json_string::String, interpretations::Dict{String, Function})
-    parsed_json = JSON.parse(json_string)
-
-    # Парсим левую и правую части TRS
-    left_term = parse_term(parsed_json[1])
-    right_term = parse_term(parsed_json[2])
-
-    # Создаем словарь var_map, который сопоставляет переменные из TRS с переменными интерпретаций
-    var_map = Dict{String, String}()
-
-    # Собираем переменные из TRS и добавляем их в var_map
-    function collect_vars(term::Term)
-        for child in term.childs
-            if !haskey(var_map, child.name)
-                var_map[child.name] = child.name  # Добавляем переменную в var_map
-            end
-            collect_vars(child)  # Рекурсивно проходим по дочерним термам
-        end
-    end
-
-    # Собираем переменные из левого и правого термов
-    collect_vars(left_term)
-    collect_vars(right_term)
-
-    # Парсим интерпретации с переменными из TRS, передаем var_map
-    parse_interpretations(interpretations, var_map)
-
-    # Применяем интерпретацию к левой и правой части TRS
-    interpreted_left = apply_interpretation(left_term, interpretations, var_map)
-    interpreted_right = apply_interpretation(right_term, interpretations, var_map)
-
-    # Выводим результат
-    println("\nПодстановка интерпретации:")
-    println("Левая часть: $interpreted_left")
-    println("Правая часть: $interpreted_right")
-end
-
-
-
-
-
-############################interpretation
-# Функция для применения интерпретаций
-# Функция для применения интерпретаций
+############################ Function for Applying Interpretations
 function apply_interpretation(term::Term, interpretations::Dict{String, Function}, var_map::Dict{String, String})
     if isempty(term.childs)
-        # Если это переменная, возвращаем её значение из var_map, если оно существует, иначе имя переменной
-        return get(var_map, term.name, term.name)
+        # If it's a variable, return its name
+        return term.name
     else
-        # Применяем интерпретацию для функции
+        # Apply the interpretation for the function
         interpreted_childs = [apply_interpretation(child, interpretations, var_map) for child in term.childs]
         if haskey(interpretations, term.name)
             interp_func = interpretations[term.name]
-            # Вызов функции интерпретации с подставленными дочерними термами
+            # Call the interpretation function with substituted child terms
             return interp_func(interpreted_childs...)
         else
-            return "$term.name(" * join(interpreted_childs, ", ") * ")"
+            return "$(term.name)(" * join(interpreted_childs, ", ") * ")"
         end
     end
 end
 
+########################### Main Code Execution
+# Display the original interpretations
+display_interpretations()
 
-
-# Функция для вывода интерпретации в человекочитаемом виде с переменными из TRS
-function interpretation_to_string(interpretations::Dict, var_map::Dict{String, String})
-    interp_strings = []
-    for (func_name, func_interp) in pairs(interpretations)
-        # Определяем количество аргументов для функции
-        func_method = first(methods(func_interp))
-        num_args = length(func_method.sig.parameters) - 1  # Количество аргументов у функции
-
-        # Создаем список переменных на основе количества аргументов
-        args = ["x$i" for i in 1:num_args]
-        mapped_args = [get(var_map, arg, arg) for arg in args]  # Заменяем переменные из TRS
-
-        # Передача переменных в функцию интерпретации по отдельности
-        result = func_interp(mapped_args...)  # Передаем переменные как отдельные аргументы
-
-        # Генерация строки результата
-        args_str = join(mapped_args, ", ")
-        push!(interp_strings, "$func_name($args_str) = $result")
-    end
-    return join(interp_strings, "\n")
-end
-
-
-
-
-
-###########################################
-
-# Создаем пустой словарь для интерпретаций
-# parse_interpretations(interpretations)
-# println(interpretations)
-
-# Создаем пустой словарь для интерпретаций
+# Create an empty dictionary for interpretations
 interpretations = Dict{String, Function}()
-parse_and_interpret(json_string_first, interpretations)
-parse_and_interpret(json_string_second, interpretations)
 
+# Parse and interpret the first TRS rule
+parse_and_interpret(json_string_first, interpretations)
+
+# Parse and interpret the second TRS rule
+parse_and_interpret(json_string_second, interpretations)
