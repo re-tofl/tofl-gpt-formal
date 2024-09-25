@@ -1,4 +1,4 @@
-using Symbolics
+using Symbolics, JSON
 include(joinpath(@__DIR__,"structures.jl"))
 
 # Функция для парсинга термов из JSON
@@ -45,5 +45,27 @@ function term_to_string(term::Term)
         # Рекурсивно обрабатываем дочерние термы
         child_strings = [term_to_string(child) for child in term.childs]
         return "$(term.name)(" * join(child_strings, ", ") * ")"  # Собираем строку в формате f(x, g(y))
+    end
+end
+
+function renamevars(jsonterm1, jsonterm2, renamefunc) 
+    rename = function (j)
+        if isempty(j["childs"]) 
+            j["value"] = renamefunc(j["value"])
+        else
+            foreach(rename, j["childs"])
+        end
+    end
+        
+    foreach(rename, (jsonterm1, jsonterm2))       
+
+    JSON.json([jsonterm1, jsonterm2])    
+end
+
+function separatevars!(jsonexprs)
+    for (index, jsonexpr) ∈ enumerate(jsonexprs)
+        expr = JSON.parse(jsonexpr)
+        renamed = renamevars(expr..., x -> "$(x)_$index")
+        jsonexprs[index] = JSON.json(renamed) 
     end
 end
