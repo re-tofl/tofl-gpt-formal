@@ -1,7 +1,7 @@
 using JSON
 ########################## Функция для парсинга интерпретаций
 function parse_interpretations(interpretations::Dict{String, Function}, var_map::Dict{String, String})
-    parsed_data = JSON.parse(json_interpret)
+    parsed_data = JSON.parse(json_interpret_string)
 
     for func in parsed_data["functions"]
         func_name = func["name"]

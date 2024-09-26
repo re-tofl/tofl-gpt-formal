@@ -1,10 +1,10 @@
-json_interpret = """
+json_interpret_hardcode = """
 {
   "functions": [
     {
       "name": "f",
-      "variables": ["x", "y", "z"],
-      "expression": "(x^2 + x + 2 * y + z)"
+      "variables": ["x", "y"],
+      "expression": "(x + 2 * y)"
     },
     {
       "name": "g",
@@ -14,7 +14,7 @@ json_interpret = """
     {
       "name": "h",
       "variables": ["x"],
-      "expression": "(x^3 + 1)"
+      "expression": "(x + 1)"
     },
     {
       "name": "u",
@@ -25,74 +25,70 @@ json_interpret = """
 }
 """
 
-json_string_first = """
+json_TRS_hardcode = """
 [
     {
-        "value": "f",
-        "childs": [
-            {
-                "value": "f",
-                "childs": [
-                    {
-                        "value": "x1",
-                        "childs": []
-                    },
-                    {
-                        "value": "x2",
-                        "childs": []
-                    },
-                    {
-                        "value": "x3",
-                        "childs": []
-                    }
-                ]
-            },
-            {
-                    "value": "x2",
+        "left": {
+            "value": "f",
+            "childs": [
+                {
+                    "value": "x1",
                     "childs": []
-            },
-            {
-                    "value": "x3",
-                    "childs": []
-            }
-        ]
+                },
+                {
+                    "value": "h",
+                    "childs": [
+                        {
+                            "value": "x2",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "right": {
+            "value": "h",
+            "childs": [
+                {
+                    "value": "f",
+                    "childs": [
+                        {
+                            "value": "x1",
+                            "childs": []
+                        },
+                        {
+                            "value": "x2",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        }
     },
     {
-        "value": "h",
-        "childs": [
-            {
-                "value": "y1",
-                "childs": []
-            }
-        ]
-    }
-]
-"""
-
-json_string_second= """
-[
-    {
-        "value": "g",
-        "childs": [
-            {
-                "value": "u",
-                "childs": [
-                    {
-                        "value": "x2",
-                        "childs": []
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "value": "h",
-        "childs": [
-            {
-                "value": "y2",
-                "childs": []
-            }
-        ]
+        "left": {
+            "value": "g",
+            "childs": [
+                {
+                    "value": "u",
+                    "childs": [
+                        {
+                            "value": "x2",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "right": {
+            "value": "h",
+            "childs": [
+                {
+                    "value": "y2",
+                    "childs": []
+                }
+            ]
+        }
     }
 ]
 """

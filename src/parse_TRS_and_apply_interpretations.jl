@@ -21,65 +21,76 @@ end
 function parse_and_interpret(json_string::String, interpretations::Dict{String, Function})
     parsed_json = JSON.parse(json_string)
 
-    # Парсим левую и правую части TRS
-    left_term = parse_term(parsed_json[1])
-    right_term = parse_term(parsed_json[2])
-
-    # Создаем словарь var_map, который сопоставляет переменные из TRS переменным интерпретаций
-    var_map = Dict{String, String}()
-
-    # Собираем переменные из TRS и добавляем их в var_map
-    variable_names = Set{String}()
-    function collect_vars(term::Term)
-        if isempty(term.childs)
-            # Если терм — переменная, добавляем его имя в var_map и variable_names
-            var_map[term.name] = term.name
-            push!(variable_names, term.name)
-        else
-            # Терм — функция, обрабатываем ее дочерние элементы
-            for child in term.childs
-                collect_vars(child)
-            end
-        end
+    # Проверяем, что parsed_json является массивом правил
+    if !isa(parsed_json, Array)
+        error("Ожидается массив правил в формате JSON.")
     end
 
-    # Собираем переменные из левой и правой частей
-    collect_vars(left_term)
-    collect_vars(right_term)
+    # Проходим по каждому правилу в массиве
+    for rule in parsed_json
+        # Проверяем, что правило содержит ключи "left" и "right"
+        if !haskey(rule, "left") || !haskey(rule, "right")
+            error("Правило должно содержать ключи 'left' и 'right'.")
+        end
 
-    # Динамически объявляем переменные
-    # Преобразуем имена переменных в символы
-    variable_symbols = Symbol.(collect(variable_names))
-    # Объявляем переменные с помощью @variables и @eval
-    @eval @variables $(variable_symbols...)
+        # Парсим левую и правую части правила
+        left_term = parse_term(rule["left"])
+        right_term = parse_term(rule["right"])
 
-    # Парсим интерпретации с переменными из TRS, передаем var_map
-    parse_interpretations(interpretations, var_map)
+        # Создаём словарь var_map для сопоставления переменных из текущего правила
+        var_map = Dict{String, String}()
 
-    # Применяем интерпретацию к левой и правой части TRS
-    interpreted_left = apply_interpretation(left_term, interpretations, var_map)
-    interpreted_right = apply_interpretation(right_term, interpretations, var_map)
+        # Собираем переменные из текущего правила
+        variable_names = Set{String}()
+        function collect_vars(term::Term)
+            if isempty(term.childs)
+                # Если терм — переменная, добавляем его имя в var_map и variable_names
+                var_map[term.name] = term.name
+                push!(variable_names, term.name)
+            else
+                # Терм — функция, обрабатываем её дочерние элементы
+                for child in term.childs
+                    collect_vars(child)
+                end
+            end
+        end
 
-    # Выводим правило TRS
-    left_term_str = term_to_string(left_term)
-    right_term_str = term_to_string(right_term)
-    println("\nПравило TRS:")
-    println("$left_term_str -> $right_term_str")
+        # Собираем переменные из левой и правой частей
+        collect_vars(left_term)
+        collect_vars(right_term)
 
-    # Упрощение интерпретаций
-    left_expr = Symbolics.simplify(eval(Meta.parse(interpreted_left)))
-    right_expr = Symbolics.simplify(eval(Meta.parse(interpreted_right)))
+        # Динамически объявляем переменные
+        variable_symbols = Symbol.(collect(variable_names))
+        @eval @variables $(variable_symbols...)
 
-    # Дополнительное упрощение с раскрытием скобок
-    left_expr_expanded = Symbolics.expand(left_expr)
-    right_expr_expanded = Symbolics.expand(right_expr)
+        # Парсим интерпретации с переменными из var_map
+        parse_interpretations(interpretations, var_map)
 
-    # Вычисляем разность и упрощаем
-    difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
-    difference_expanded = Symbolics.expand(difference)
+        # Применяем интерпретацию к левой и правой части текущего правила
+        interpreted_left = apply_interpretation(left_term, interpretations, var_map)
+        interpreted_right = apply_interpretation(right_term, interpretations, var_map)
 
-    println("\nВыражение:")
-    println("$(left_expr_expanded) = $(right_expr_expanded)")
-    println("После упрощения:")
-    println("$(difference_expanded) = 0")
+        # Выводим правило TRS
+        left_term_str = term_to_string(left_term)
+        right_term_str = term_to_string(right_term)
+        println("\nПравило TRS:")
+        println("$left_term_str -> $right_term_str")
+
+        # Упрощение интерпретаций
+        left_expr = Symbolics.simplify(eval(Meta.parse(interpreted_left)))
+        right_expr = Symbolics.simplify(eval(Meta.parse(interpreted_right)))
+
+        # Дополнительное упрощение с раскрытием скобок
+        left_expr_expanded = Symbolics.expand(left_expr)
+        right_expr_expanded = Symbolics.expand(right_expr)
+
+        # Вычисляем разность и упрощаем
+        difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
+        difference_expanded = Symbolics.expand(difference)
+
+        println("\nВыражение:")
+        println("$(left_expr_expanded) = $(right_expr_expanded)")
+        println("После упрощения:")
+        println("$(difference_expanded) = 0")
+    end
 end
