@@ -7,7 +7,8 @@ include(joinpath(@__DIR__,"parser/parse_TRS_and_apply_interpretations.jl"))
 include(joinpath(@__DIR__,"display_interpretations.jl"))
 include(joinpath(@__DIR__,"server.jl"))
 
-
+global variables_array = Vector{String}() # Вектор с итоговым набором переменых
+global simplified_left_parts = Vector{String}() # Вектор с итоговым набором левых частей правил
 
 interpretations = Dict{String, Function}()
 # Функция для обработки полученных данных
@@ -30,6 +31,10 @@ function process_data()
 
     # Обрабатываем TRS
     parse_and_interpret(json_TRS_string, interpretations)
+
+    println("\nПолученные переменные и левые части правил после подстановки")
+    println(variables_array)
+    println(simplified_left_parts)
 
     # Очищаем данные после обработки
     global json_TRS_string = nothing

@@ -1,4 +1,5 @@
 using Symbolics
+
 ############################ Функция для применения интерпретаций
 function apply_interpretation(term::Term, interpretations::Dict{String, Function}, var_map::Dict{String, String})
     if isempty(term.childs)
@@ -63,6 +64,8 @@ function parse_and_interpret(json_string::String, interpretations::Dict{String, 
         variable_symbols = Symbol.(collect(variable_names))
         @eval @variables $(variable_symbols...)
 
+        append!(variables_array, string.(variable_symbols))
+
         # Парсим интерпретации с переменными из var_map
         parse_interpretations(interpretations, var_map)
 
@@ -92,5 +95,8 @@ function parse_and_interpret(json_string::String, interpretations::Dict{String, 
         println("$(left_expr_expanded) = $(right_expr_expanded)")
         println("После упрощения:")
         println("$(difference_expanded) = 0")
+
+        # Сохраняем левую часть выражения
+        push!(simplified_left_parts, string(difference_expanded))
     end
 end
