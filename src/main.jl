@@ -19,11 +19,14 @@ function process_data()
         return
     end
 
+    # Применение функции переименования переменных в TRS
+    json_TRS_string = separatevars(json_TRS_string)
+
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
         println("Интерпретации пусты. Запуск лабы деда.")
         # Надо будет получить их из лабы дедов
-        # laba_deda(json_TRS_string)
+        # interpretations = laba_deda(json_TRS_string)
         return
     else
         display_interpretations()

@@ -19,26 +19,26 @@ function apply_interpretation(term::Term, interpretations::Dict{String, Function
 end
 
 ########################### Функция для переименования переменных в TRS
-function renamevars!(jsonterm1, jsonterm2, renamefunc) 
+function renamevars!(jsonterm1, jsonterm2, renamefunc)
     rename! = function (j)
-        if isempty(j["childs"]) 
+        if isempty(j["childs"])
             j["value"] = renamefunc(j["value"])
         else
             foreach(rename!, j["childs"])
         end
     end
-        
-    foreach(rename!, (jsonterm1, jsonterm2))       
+
+    foreach(rename!, (jsonterm1, jsonterm2))
 end
 
 function separatevars(json_string)
     json_exprs = JSON.parse(json_string)
     for (index, expr) ∈ enumerate(json_exprs)
-        renamevars!(expr["left"], expr["right"], x -> "$(x)_$index")
-        json_exprs[index] = JSON.json(expr) 
+        renamevars!(expr["left"], expr["right"], x -> "$(x)$index")
     end
     JSON.json(json_exprs)
 end
+
 
 ########################## Функция для парсинга и интерпретации TRS
 function parse_and_interpret(json_string::String, interpretations::Dict{String, Function})
