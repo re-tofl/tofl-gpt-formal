@@ -38,14 +38,14 @@ trs_data = [
             "value": "f",
             "childs": [
                 {
-                    "value": "x1",
+                    "value": "x",
                     "childs": []
                 },
                 {
                     "value": "h",
                     "childs": [
                         {
-                            "value": "x2",
+                            "value": "y",
                             "childs": []
                         }
                     ]
@@ -59,11 +59,11 @@ trs_data = [
                     "value": "f",
                     "childs": [
                         {
-                            "value": "x1",
+                            "value": "x",
                             "childs": []
                         },
                         {
-                            "value": "x2",
+                            "value": "y",
                             "childs": []
                         }
                     ]
@@ -79,7 +79,7 @@ trs_data = [
                     "value": "u",
                     "childs": [
                         {
-                            "value": "x3",
+                            "value": "x",
                             "childs": []
                         }
                     ]
@@ -90,7 +90,7 @@ trs_data = [
             "value": "h",
             "childs": [
                 {
-                    "value": "x4",
+                    "value": "x",
                     "childs": []
                 }
             ]
