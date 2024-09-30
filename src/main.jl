@@ -6,6 +6,7 @@ include(joinpath(@__DIR__,"parser/parse_interpretations.jl"))
 include(joinpath(@__DIR__,"parser/parse_TRS_and_apply_interpretations.jl"))
 include(joinpath(@__DIR__,"display_interpretations.jl"))
 include(joinpath(@__DIR__,"server.jl"))
+include("run_old_lab.jl")
 
 global variables_array = Vector{String}() # Вектор с итоговым набором переменых
 global simplified_left_parts = Vector{String}() # Вектор с итоговым набором левых частей правил
@@ -27,6 +28,7 @@ function process_data()
         println("Интерпретации пусты. Запуск лабы деда.")
         # Надо будет получить их из лабы дедов
         # interpretations = laba_deda(json_TRS_string)
+        interact_with_program(build_or_not("lab1", "lab1.exe")) # сейчас просто запуск лабы и запись вывода в файл
         return
     else
         display_interpretations()
