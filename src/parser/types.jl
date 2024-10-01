@@ -1,5 +1,4 @@
 struct Term
-    name::String
+    name::AbstractString
     childs::Vector{Term}
 end
-
