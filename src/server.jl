@@ -1,6 +1,6 @@
 using HTTP
 
-interpretation_channel = Channel{String}()  # Adjust buffer size as needed
+interpretation_channel = Channel{String}()
 trs_channel = Channel{String}()   
 # Функция для обработки входящих запросов
 function request_handler(req)

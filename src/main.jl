@@ -42,6 +42,8 @@ while true
         json_interpret_string = take!(interpretation_channel)
         json_TRS_string = take!(trs_channel)
         process_data(json_interpret_string, json_TRS_string)
+    else 
+        @info "Ожидание данных..."
     end
 
     sleep(1)
