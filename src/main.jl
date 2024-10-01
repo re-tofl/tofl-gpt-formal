@@ -1,9 +1,10 @@
 using JSON
 using Symbolics
-include(joinpath(@__DIR__,"structures.jl"))
+
+include("parser/parse_TRS_and_apply_interpretations.jl")
+using .Parser
+
 include(joinpath(@__DIR__,"data/jsons_data.jl"))
-include(joinpath(@__DIR__,"parser/parse_interpretations.jl"))
-include(joinpath(@__DIR__,"parser/parse_TRS_and_apply_interpretations.jl"))
 include(joinpath(@__DIR__,"display_interpretations.jl"))
 include(joinpath(@__DIR__,"server.jl"))
 
