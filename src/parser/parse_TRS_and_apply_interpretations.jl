@@ -121,8 +121,8 @@ function parse_and_interpret(json_string, json_interpretations)
         # Выводим правило TRSS
         left_term_str = term_to_string(left_term)
         right_term_str = term_to_string(right_term)
-        @info "\nПравило TRS:"
-        @info "$left_term_str -> $right_term_str"
+        println("\nПравило TRS:")
+        println("$left_term_str -> $right_term_str")
 
         # Упрощение интерпретаций
         left_expr = interpreted_left |> Meta.parse |> eval |> Symbolics.simplify
@@ -136,10 +136,10 @@ function parse_and_interpret(json_string, json_interpretations)
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        @info "\nВыражение:"
-        @info "$(left_expr_expanded) = $(right_expr_expanded)"
-        @info "После упрощения:"
-        @info "$(difference_expanded) = 0"
+        println("\nВыражение:")
+        println("$(left_expr_expanded) = $(right_expr_expanded)")
+        println("После упрощения:")
+        println("$(difference_expanded) = 0")
 
         # Сохраняем левую часть выражения
         push!(simplified_left_parts, string(difference_expanded))
