@@ -8,7 +8,10 @@ include("display_interpretations.jl")
 include("server.jl")
 
 # Функция для обработки полученных данных
-function process_data(json_interpret_string, json_TRS_string)
+function process_data()
+    if json_interpret_string ≡ nothing || json_TRS_string ≡ nothing
+        @info "Ожидание данных"
+    end
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
         @info "Интерпретации пусты. Запуск лабы деда."
@@ -38,13 +41,6 @@ port = 8081
 end
 
 while true
-    if isready(interpretation_channel) && isready(trs_channel)
-        json_interpret_string = take!(interpretation_channel)
-        json_TRS_string = take!(trs_channel)
-        process_data(json_interpret_string, json_TRS_string)
-    else 
-        @info "Ожидание данных..."
-    end
-
+    process_data()
     sleep(1)
 end

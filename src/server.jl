@@ -1,7 +1,7 @@
 using HTTP
 
-interpretation_channel = Channel{String}()
-trs_channel = Channel{String}()   
+global json_interpretation_string
+global json_TRS_string   
 # Функция для обработки входящих запросов
 function request_handler(req)
     if req.method == "POST"
@@ -9,11 +9,11 @@ function request_handler(req)
         body = String(req.body)  # Получаем JSON-строку
 
         if path == "/interpretations"
-            put!(interpretation_channel, body)
+            json_interpretation_string = body
             println("Получены интерпретации.")
             return HTTP.Response(200, "Интерпретации получены.")
         elseif path == "/trs"
-            put!(trs_channel, body)
+            json_TRS_string = body
             println("Получены данные TRS.")
             return HTTP.Response(200, "Данные TRS получены.")
         else
