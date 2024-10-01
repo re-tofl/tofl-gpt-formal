@@ -1,9 +1,7 @@
 using HTTP
 
-# Глобальные переменные для хранения полученных JSON-строк
-global json_TRS_string = nothing
-global json_interpret_string = nothing
-
+interpretation_channel = Channel{String}()  # Adjust buffer size as needed
+trs_channel = Channel{String}()   
 # Функция для обработки входящих запросов
 function request_handler(req)
     if req.method == "POST"
@@ -11,11 +9,11 @@ function request_handler(req)
         body = String(req.body)  # Получаем JSON-строку
 
         if path == "/interpretations"
-            global json_interpret_string = body
+            put!(interpretation_channel, body)
             println("Получены интерпретации.")
             return HTTP.Response(200, "Интерпретации получены.")
         elseif path == "/trs"
-            global json_TRS_string = body
+            put!(trs_channel, body)
             println("Получены данные TRS.")
             return HTTP.Response(200, "Данные TRS получены.")
         else

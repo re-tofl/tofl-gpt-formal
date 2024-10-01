@@ -7,16 +7,8 @@ using .Parser
 include("display_interpretations.jl")
 include("server.jl")
 
-include("data/jsons_data.jl")
-
 # Функция для обработки полученных данных
-function process_data()
-    # Проверяем, получены ли оба JSONа
-    if json_TRS_string ≡ nothing || json_interpret_string ≡ nothing
-        @info "Ожидание данных..."
-        return
-    end
-
+function process_data(json_interpret_string, json_TRS_string)
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
         @info "Интерпретации пусты. Запуск лабы деда."
@@ -45,8 +37,12 @@ port = 8081
     HTTP.serve(request_handler, "0.0.0.0", port)
 end
 
-# Главный цикл программы
 while true
-    process_data()
+    if isready(interpretation_channel) && isready(trs_channel)
+        json_interpret_string = take!(interpretation_channel)
+        json_TRS_string = take!(trs_channel)
+        process_data(json_interpret_string, json_TRS_string)
+    end
+
     sleep(1)
 end
