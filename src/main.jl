@@ -4,19 +4,20 @@ using Symbolics
 include("parser/parse_TRS_and_apply_interpretations.jl")
 using .Parser
 
-include(joinpath(@__DIR__,"data/jsons_data.jl"))
-include(joinpath(@__DIR__,"display_interpretations.jl"))
-include(joinpath(@__DIR__,"server.jl"))
+include("data/jsons_data.jl")
+include("display_interpretations.jl")
+include("server.jl")
 
-global variables_array = Vector{String}() # Вектор с итоговым набором переменых
-global simplified_left_parts = Vector{String}() # Вектор с итоговым набором левых частей правил
+include("data/jsons_data.jl")
 
+json_TRS_string = json_TRS_hardcode
+json_interpret_string = json_interpret_hardcode
 interpretations = Dict{String, Function}()
 # Функция для обработки полученных данных
 function process_data()
     # Проверяем, получены ли оба JSONа
-    if json_TRS_string === nothing || json_interpret_string === nothing
-        println("Ожидание данных...")
+    if json_TRS_string ≡ nothing || json_interpret_string ≡ nothing
+        @info "Ожидание данных..."
         return
     end
 
@@ -25,7 +26,7 @@ function process_data()
 
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
-        println("Интерпретации пусты. Запуск лабы деда.")
+        @info "Интерпретации пусты. Запуск лабы деда."
         # Надо будет получить их из лабы дедов
         # interpretations = laba_deda(json_TRS_string)
         return
@@ -34,22 +35,17 @@ function process_data()
     end
 
     # Обрабатываем TRS
-    parse_and_interpret(json_TRS_string, interpretations)
+    variables_array, simplified_left_parts = parse_and_interpret(json_TRS_string, json_interpret_string)
 
     println("\nПолученные переменные и левые части правил после подстановки")
     println(variables_array)
     println(simplified_left_parts)
-
-    # Очищаем данные после обработки
-    global json_TRS_string = nothing
-    global json_interpret_string = nothing
 end
 
 port = 8081
 @async begin
     HTTP.serve(request_handler, "0.0.0.0", port)
 end
-println("Сервер запущен на порту $port")
 
 # Главный цикл программы
 while true

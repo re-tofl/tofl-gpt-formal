@@ -3,8 +3,15 @@ module Parser
 include("types.jl")
 
 using Symbolics
+using JSON
 
-export parse_and_interpret, separatevars
+export parse_and_interpret, separatevars, MissingJSONField
+
+struct MissingJSONField <: Exception
+           filed
+end
+
+Base.showerror(io::IO, e::MissingJSONField) = print(io, "JSON поле $(e.field) не определено")
 
 ############################ Функция для применения интерпретаций
 function apply_interpretation(term, interpretations, var_map)::String
@@ -44,31 +51,38 @@ end
 function separatevars(json_string)::String
     json_exprs = JSON.parse(json_string)
     for (index, expr) ∈ enumerate(json_exprs)
-        renamevars!(expr["left"], expr["right"], x -> "$(x)$index")
+        renamevars!(expr["left"], expr["right"], x -> "$(x)_$index")
     end
     JSON.json(json_exprs)
 end
 
 
-########################## Функция для парсинга и интерпретации TRS
-function parse_and_interpret(json_string::String, interpretations::Dict{String, Function})
+"""
+Возвращает вектор переменных и вектор полимномов, всё в виде строк
+"""
+function parse_and_interpret(json_string, json_interpretations)
+    variables_array = Vector()
+    simplified_left_parts = Vector()
+
     parsed_json = JSON.parse(json_string)
 
     # Проверяем, что parsed_json является массивом правил
     if !isa(parsed_json, Array)
-        error("Ожидается массив правил в формате JSON.")
+        throw(ArgumentError("ожидаетя массив JSON правил"))
     end
 
     # Проходим по каждому правилу в массиве
     for rule in parsed_json
         # Проверяем, что правило содержит ключи "left" и "right"
-        if !haskey(rule, "left") || !haskey(rule, "right")
-            error("Правило должно содержать ключи 'left' и 'right'.")
+        if !haskey(rule, "left")
+            throw(MissingJSONField("left"))
         end
-
+        if !haskey(rule, "right")
+            throw(MissingJSONField("right"))
+        end
         # Парсим левую и правую части правила
-        left_term = parse_term(rule["left"])
-        right_term = parse_term(rule["right"])
+        left_term = make_term_from_json(rule["left"])
+        right_term = make_term_from_json(rule["right"])
 
         # Создаём словарь var_map для сопоставления переменных из текущего правила
         var_map = Dict{String, String}()
@@ -82,7 +96,7 @@ function parse_and_interpret(json_string::String, interpretations::Dict{String, 
                 push!(variable_names, term.name)
             else
                 # Терм — функция, обрабатываем её дочерние элементы
-                for child in term.childs
+                for child ∈ term.childs
                     collect_vars(child)
                 end
             end
@@ -98,22 +112,21 @@ function parse_and_interpret(json_string::String, interpretations::Dict{String, 
 
         append!(variables_array, string.(variable_symbols))
 
-        # Парсим интерпретации с переменными из var_map
-        parse_interpretations(interpretations, var_map)
+        interpretations = parse_interpretations(json_interpretations)
 
         # Применяем интерпретацию к левой и правой части текущего правила
         interpreted_left = apply_interpretation(left_term, interpretations, var_map)
         interpreted_right = apply_interpretation(right_term, interpretations, var_map)
 
-        # Выводим правило TRS
+        # Выводим правило TRSS
         left_term_str = term_to_string(left_term)
         right_term_str = term_to_string(right_term)
-        println("\nПравило TRS:")
-        println("$left_term_str -> $right_term_str")
+        @info "\nПравило TRS:"
+        @info "$left_term_str -> $right_term_str"
 
         # Упрощение интерпретаций
-        left_expr = Symbolics.simplify(eval(Meta.parse(interpreted_left)))
-        right_expr = Symbolics.simplify(eval(Meta.parse(interpreted_right)))
+        left_expr = interpreted_left |> Meta.parse |> eval |> Symbolics.simplify
+        right_expr = interpreted_right |> Meta.parse |> eval |> Symbolics.simplify
 
         # Дополнительное упрощение с раскрытием скобок
         left_expr_expanded = Symbolics.expand(left_expr)
@@ -123,20 +136,23 @@ function parse_and_interpret(json_string::String, interpretations::Dict{String, 
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        println("\nВыражение:")
-        println("$(left_expr_expanded) = $(right_expr_expanded)")
-        println("После упрощения:")
-        println("$(difference_expanded) = 0")
+        @info "\nВыражение:"
+        @info "$(left_expr_expanded) = $(right_expr_expanded)"
+        @info "После упрощения:"
+        @info "$(difference_expanded) = 0"
 
         # Сохраняем левую часть выражения
         push!(simplified_left_parts, string(difference_expanded))
     end
+
+    variables_array, simplified_left_parts
 end
 
 ########################## Функция для парсинга интерпретаций
-function parse_interpretations(interpretations::Dict{String, Function}, var_map::Dict{String, String})
-    parsed_data = JSON.parse(json_interpret_string)
+function parse_interpretations(json_interpret_string)
+    interpretations::Dict{String, Function} = Dict()
 
+    parsed_data = JSON.parse(json_interpret_string)
     for func in parsed_data["functions"]
         func_name = func["name"]
         variables = func["variables"]
@@ -146,19 +162,21 @@ function parse_interpretations(interpretations::Dict{String, Function}, var_map:
         interpretations[func_name] = (vars...) -> begin
             expr = expression
             # Заменяем переменные в выражении на соответствующие переменные из TRS
-            for (i, var) in enumerate(variables)
+            for (i, var) ∈ enumerate(variables)
                 # Используем регулярные выражения для замены целых слов
                 expr = replace(expr, Regex("\\b$(var)\\b") => vars[i])
             end
             return expr
         end
     end
+
+    interpretations
 end
 
 ########################################## Функция для парсинга термов
 # Функция для парсинга термов из JSON
-function parse_term(json::Dict)
-    childs = [parse_term(child) for child in json["childs"]]
+function make_term_from_json(json::Dict)
+    childs = [make_term_from_json(child) for child in json["childs"]]
     return Term(json["value"], childs)
 end
 
