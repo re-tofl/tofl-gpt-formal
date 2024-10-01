@@ -1,5 +1,4 @@
 using HTTP
-
 # Глобальные переменные для хранения полученных JSON-строк
 global json_TRS_string = nothing
 global json_interpret_string = nothing

@@ -1,21 +1,16 @@
 using JSON
 using Symbolics
-include(joinpath(@__DIR__,"structures.jl"))
-include(joinpath(@__DIR__,"data/jsons_data.jl"))
-include(joinpath(@__DIR__,"parser/parse_interpretations.jl"))
-include(joinpath(@__DIR__,"parser/parse_TRS_and_apply_interpretations.jl"))
-include(joinpath(@__DIR__,"display_interpretations.jl"))
-include(joinpath(@__DIR__,"server.jl"))
 
-global variables_array = Vector{String}() # Вектор с итоговым набором переменых
-global simplified_left_parts = Vector{String}() # Вектор с итоговым набором левых частей правил
 
-interpretations = Dict{String, Function}()
+include("parser/parse_TRS_and_apply_interpretations.jl")
+using .Parser
+include("display_interpretations.jl")
+include("server.jl")
+
 # Функция для обработки полученных данных
 function process_data()
-    # Проверяем, получены ли оба JSONа
     if json_TRS_string === nothing || json_interpret_string === nothing
-        println("Ожидание данных...")
+        @info "Ожидание данных"
         return
     end
 
@@ -24,7 +19,7 @@ function process_data()
 
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
-        println("Интерпретации пусты. Запуск лабы деда.")
+        @info "Интерпретации пусты. Запуск лабы деда."
         # Надо будет получить их из лабы дедов
         # interpretations = laba_deda(json_TRS_string)
         return
@@ -32,13 +27,15 @@ function process_data()
         display_interpretations()
     end
 
-    # Обрабатываем TRS
-    parse_and_interpret(json_TRS_string, interpretations)
 
-    println("\nПолученные переменные и левые части правил после подстановки")
+    # Обрабатываем TRS
+    variables_array, simplified_left_parts = parse_and_interpret(
+        json_TRS_string, json_interpret_string,
+    )
+
+    println("Полученные переменные и левые части правил после подстановки")
     println(variables_array)
     println(simplified_left_parts)
-
     # Очищаем данные после обработки
     global json_TRS_string = nothing
     global json_interpret_string = nothing
@@ -48,9 +45,7 @@ port = 8081
 @async begin
     HTTP.serve(request_handler, "0.0.0.0", port)
 end
-println("Сервер запущен на порту $port")
 
-# Главный цикл программы
 while true
     process_data()
     sleep(1)
