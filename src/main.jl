@@ -39,9 +39,9 @@ function process_data()
         json_TRS_string, json_interpret_string,
     )
 
-    println("\nПолученные переменные и левые части правил после подстановки")
-    println(variables_array)
-    println(simplified_left_parts)
+    @info "Полученные переменные и левые части правил после подстановки"
+    @info variables_array
+    @info simplified_left_parts
 end
 
 port = 8081
