@@ -91,8 +91,19 @@ function parse_expr(input::String)
     return all_expr
 end
 
-function parse_smt_output()
-    #здесь будет парсинг для извлечения значений коэффициентов
+function parse_smt_output(smt_answer::String)
+    found_values = Dict{}()
+    if startswith(smt_answer, "sat")
+        lines = eachmatch(r"\w+\d+\s*\(\)\s*Int\s+\d+", smt_answer)
+        for pattern in lines
+            splited_pattern = split(pattern.match, " ")
+            variable = splited_pattern[1]
+            value = splited_pattern[end]
+            found_values[variable] = value
+        end       
+        return true, found_values
+    end
+    return false, found_values
 end
 
 
@@ -109,5 +120,24 @@ left: map[ :[f_0] x:[f_2] z:[f_1]]
 right: map[ :[h_0] x:[h_1]]"""
 
 
+smt_input = """sat
+(
+  (define-fun h_1 () Int
+    1)
+  (define-fun f_2 () Int
+    16)
+  (define-fun f_1 () Int
+    11)
+  (define-fun h_0 () Int
+    1)
+  (define-fun f_0 () Int
+    5)
+  (define-fun s_0 () Int
+    13)
+  (define-fun s_1 () Int
+    1)
+)"""
+
 #println(parse_expr(input_string))
 #interact_with_program(build_or_not("lab1", "lab1.exe"))
+#parse_smt_output(smt_input)
