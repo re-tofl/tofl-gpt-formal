@@ -35,7 +35,9 @@ function process_data()
     end
 
     # Обрабатываем TRS
-    variables_array, simplified_left_parts = parse_and_interpret(json_TRS_string, json_interpret_string)
+    variables_array, simplified_left_parts = parse_and_interpret(
+        json_TRS_string, json_interpret_string,
+    )
 
     println("\nПолученные переменные и левые части правил после подстановки")
     println(variables_array)
