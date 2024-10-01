@@ -20,7 +20,7 @@ function apply_interpretation(term, interpretations, var_map)::String
         return term.name
     else
         # Применяем интерпретацию для функции
-        interpreted_childs = [apply_interpretation(child, interpretations, var_map) for child in term.childs]
+        interpreted_childs = [apply_interpretation(child, interpretations, var_map) for child ∈ term.childs]
         if haskey(interpretations, term.name)
             interp_func = interpretations[term.name]
             # Вызываем функцию интерпретации с подставленными дочерними термами
@@ -72,7 +72,7 @@ function parse_and_interpret(json_string, json_interpretations)
     end
 
     # Проходим по каждому правилу в массиве
-    for rule in parsed_json
+    for rule ∈ parsed_json
         # Проверяем, что правило содержит ключи "left" и "right"
         if !haskey(rule, "left")
             throw(MissingJSONField("left"))
@@ -153,7 +153,7 @@ function parse_interpretations(json_interpret_string)
     interpretations::Dict{String, Function} = Dict()
 
     parsed_data = JSON.parse(json_interpret_string)
-    for func in parsed_data["functions"]
+    for func ∈ parsed_data["functions"]
         func_name = func["name"]
         variables = func["variables"]
         expression = func["expression"]
@@ -176,7 +176,7 @@ end
 ########################################## Функция для парсинга термов
 # Функция для парсинга термов из JSON
 function make_term_from_json(json::Dict)
-    childs = [make_term_from_json(child) for child in json["childs"]]
+    childs = [make_term_from_json(child) for child ∈ json["childs"]]
     return Term(json["value"], childs)
 end
 
@@ -186,7 +186,7 @@ function term_to_string(term::Term)
         return term.name  # Если терм — переменная, возвращаем его имя
     else
         # Рекурсивно обрабатываем дочерние термы
-        child_strings = [term_to_string(child) for child in term.childs]
+        child_strings = [term_to_string(child) for child ∈ term.childs]
         return "$(term.name)(" * join(child_strings, ", ") * ")"
     end
 end
