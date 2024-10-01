@@ -4,15 +4,11 @@ using Symbolics
 include("parser/parse_TRS_and_apply_interpretations.jl")
 using .Parser
 
-include("data/jsons_data.jl")
 include("display_interpretations.jl")
 include("server.jl")
 
 include("data/jsons_data.jl")
 
-json_TRS_string = json_TRS_hardcode
-json_interpret_string = json_interpret_hardcode
-interpretations = Dict{String, Function}()
 # Функция для обработки полученных данных
 function process_data()
     # Проверяем, получены ли оба JSONа
@@ -20,9 +16,6 @@ function process_data()
         @info "Ожидание данных..."
         return
     end
-
-    # Применение функции переименования переменных в TRS
-    json_TRS_string = separatevars(json_TRS_string)
 
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
@@ -33,6 +26,9 @@ function process_data()
     else
         display_interpretations()
     end
+
+    # Применение функции переименования переменных в TRS
+    json_TRS_string = separatevars(json_TRS_string)
 
     # Обрабатываем TRS
     variables_array, simplified_left_parts = parse_and_interpret(
