@@ -16,7 +16,7 @@ function build_or_not(folder_name, name_file)
         end
     end
 
-    postfixes = ["", ".exe"]
+    postfixes = [".exe", ""]
     is_found = false
     file_path = ""
     for postfix in postfixes
@@ -26,6 +26,7 @@ function build_or_not(folder_name, name_file)
         if (isfile(file_path) && isexecutable(file_path))
             is_found = true
             @info "Будет использован '$file_path'"
+            break
         end
     end
 
@@ -33,6 +34,16 @@ function build_or_not(folder_name, name_file)
         @info "Файл '$name_file' не найден. Выполняем команду 'go build .'"
         cd(folder_path) do
             read(run(`go build .`), )
+        end
+        for postfix in postfixes
+            target_file = name_file * postfix
+            file_path = joinpath(folder_path, target_file)
+            # Проверяем наличие искомого исполняемого файла
+            if (isfile(file_path) && isexecutable(file_path))
+                is_found = true
+                @info "Будет использован '$file_path'"
+                break
+            end
         end
     end
 
