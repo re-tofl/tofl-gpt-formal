@@ -22,6 +22,8 @@ function process_data()
     if json_interpret_string == "{}"
         @info "Интерпретации пусты. Запуск лабы деда."
         write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
+        global json_TRS_string = nothing
+        global json_interpret_string = nothing
         return
     else
         # Применение функции переименования переменных в TRS
