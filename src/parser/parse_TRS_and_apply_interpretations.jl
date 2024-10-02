@@ -230,5 +230,6 @@ function json_trs_to_string(json_string)
     return all_rules_in_string
 end
 
+end
 
 end
