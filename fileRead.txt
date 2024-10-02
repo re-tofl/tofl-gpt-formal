@@ -1,2 +1,2 @@
 f(x, s(y)) -> s(f(x, y))
-f(x, z) -> h(x)
+s(z) -> f(z, z)

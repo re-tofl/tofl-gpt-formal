@@ -1,8 +1,8 @@
 using Base.Sys
+using Symbolics
 
 
-function build_or_not(folder_name::String, target_file::String)
-
+function build_or_not(folder_name, name_file)
     current_dir = pwd()
     dirs_to_check = [current_dir, dirname(current_dir)]
     folder_path = ""
@@ -13,12 +13,21 @@ function build_or_not(folder_name::String, target_file::String)
         end
     end
 
-    file_path = joinpath(folder_path, target_file)
-    println("Ищем '$file_path'")
+    postfixes = ["", ".exe"]
+    is_found = false
+    file_path = ""
+    for postfix in postfixes
+        target_file = name_file * postfix
+        file_path = joinpath(folder_path, target_file)
+        # Проверяем наличие искомого исполняемого файла
+        if (isfile(file_path) && isexecutable(file_path))
+            is_found = true
+            @info "Будет использован '$file_path'"
+        end
+    end
 
-    # Проверяем наличие искомого исполняемого файла
-    if !(isfile(file_path) && isexecutable(file_path))
-        println("Файл '$target_file' не найден. Выполняем команду 'go build .'")
+    if !(is_found)
+        @info "Файл '$name_file' не найден. Выполняем команду 'go build .'"
         cd(folder_path) do
             read(run(`go build .`), )
         end
@@ -28,22 +37,21 @@ function build_or_not(folder_name::String, target_file::String)
 end
 
 
-function interact_with_program(path::String)
-    #io = open(pipeline(`$path`, stdout=stdout, stderr=stderr), "w+")
-
+function interact_with_program(path)
     io = open(`$path`; write=true, read=true)
     write(io, "2\n")
     output = read(io, String)
 
-    open(path*"_output.txt", "w") do wtf 
+    open("old_lab_output.txt", "w") do wtf 
         write(wtf, output) 
     end
 
     close(io)
+    return output
 end
 
 
-function parse_map(input::String)
+function parse_map(input)
     cleaned_string = replace(input, "map[" => "")[1:end-1]
     result_dict = Dict{String, String}()
 
@@ -53,12 +61,10 @@ function parse_map(input::String)
     for pair in pairs
         # Разделение ключа и значения по двоеточию
         key_value = split(pair, ":")
-        println(key_value)
         
         if length(key_value) == 2
             key = strip(key_value[1])
-            value = strip(replace(key_value[2], r"^\[\s*" => "", r"\s*\]$" => ""))
-            result_dict[key] = valuе
+            result_dict[key] = strip(replace(key_value[2], r"^\[\s*" => "", r"\s*\]$" => ""))
         end
     end
 
@@ -66,7 +72,7 @@ function parse_map(input::String)
 end
 
 
-function parse_expr(input::String)
+function parse_expr(input)
     sections = split(input, "\n")
     num_sections = length(sections)
     
@@ -76,22 +82,20 @@ function parse_expr(input::String)
     for section in sections
         if startswith(section, r"\d+")
             index += 1
-            v = [Dict{String, Any}(), Dict{String, Any}()]
-            all_expr[index] = v
+            all_expr[index] = [Dict{String, Any}(), Dict{String, Any}()]
         elseif startswith(section, "left")
-            dict = parse_map(section[6:end])
-            all_expr[index][1] = dict
+            all_expr[index][1] = parse_map(section[6:end])
         elseif startswith(section, "right")
-            dict = parse_map(section[7:end])
-            all_expr[index][2] = dict
+            all_expr[index][2] = parse_map(section[7:end])
         else 
-            println("что-то не так", section, " xclksnlk")
+            println("Этого не могло случиться О_о")
         end
     end
+
     return all_expr
 end
 
-function parse_smt_output(smt_answer::String)
+function parse_smt_output(smt_answer)
     found_values = Dict{}()
     if startswith(smt_answer, "sat")
         lines = eachmatch(r"\w+\d+\s*\(\)\s*Int\s+\d+", smt_answer)
@@ -100,44 +104,63 @@ function parse_smt_output(smt_answer::String)
             variable = splited_pattern[1]
             value = splited_pattern[end]
             found_values[variable] = value
-        end       
+        end  
+
         return true, found_values
     end
+
     return false, found_values
 end
 
-
-function parse_output(output::String)
-    #здесь будет парсинг всего вывода программы
+function substitute_coefs(expressions, replacements)
+    simplified_expr = expressions
+    for i in 1:length(expressions)
+        for j in 1:2
+            for (var, coef) in expressions[i][j]
+                new_coef = coef
+                name_coefs = eachmatch(r"\w\_\d*", new_coef)
+                for m in name_coefs
+                    new_coef = replace(new_coef, m.match => replacements[m.match])
+                end
+                simplified_expr[i][j][var] = new_coef |> Meta.parse |> eval |> Symbolics.simplify
+            end
+        end
+    end
+    return simplified_expr
 end
 
+function parse_output(output)
+    needed_part = strip(split(output, "after similar ones:")[end], [' ', '\n'])
+    expr_and_smtout = split(needed_part, "Результат выполнения команды:")
+    exprs = strip(expr_and_smtout[1], [' ', '\n'])
+    smtout = strip(expr_and_smtout[end], [' ', '\n'])
+   
+    linear_interpret = parse_expr(exprs)
+    is_sat, vars_values = parse_smt_output(smtout)
+    
+    if is_sat
+        linear_interpret = substitute_coefs(linear_interpret, vars_values)        
+    end
+    
+    return is_sat, linear_interpret
+end
 
-input_string = """0:
-left: map[ :[s_0 * f_1 + f_0] x:[f_2] y:[s_1 * f_1]]
-right: map[ :[f_0 * s_1 + s_0] x:[f_2 * s_1] y:[f_1 * s_1]]
-1:
-left: map[ :[f_0] x:[f_2] z:[f_1]]
-right: map[ :[h_0] x:[h_1]]"""
+#trs_rules=nothing будет убрано, когда определим формат этой переменной
+function write_trs_and_run_lab(name_folder, name_file=name_folder, trs_rules=nothing)
+    # здесь будем конвертировать формат входа в строку для записи в файл
+    # нужно будет определить формат для trs_rules
+    """
+    trs_string = tostring(trs_rules)
 
+    open("fileRead.txt", "w") do wtf 
+        write(wtf, trs_string) 
+    end
+    """
+    output = interact_with_program(build_or_not(name_folder, name_file))
+    
+    is_sat, expr = parse_output(output)
+    @info "В стадии разработки. Для данных из файла is_sat = '$is_sat'"
+    return parse_output(output)
+end
 
-smt_input = """sat
-(
-  (define-fun h_1 () Int
-    1)
-  (define-fun f_2 () Int
-    16)
-  (define-fun f_1 () Int
-    11)
-  (define-fun h_0 () Int
-    1)
-  (define-fun f_0 () Int
-    5)
-  (define-fun s_0 () Int
-    13)
-  (define-fun s_1 () Int
-    1)
-)"""
-
-#println(parse_expr(input_string))
-#interact_with_program(build_or_not("lab1", "lab1.exe"))
-#parse_smt_output(smt_input)
+#println(write_trs_and_run_lab("lab1"))

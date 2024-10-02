@@ -6,6 +6,7 @@ include("parser/parse_TRS_and_apply_interpretations.jl")
 using .Parser
 include("display_interpretations.jl")
 include("server.jl")
+include("run_old_lab.jl")
 
 # Функция для обработки полученных данных
 function process_data()
@@ -20,9 +21,8 @@ function process_data()
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
         @info "Интерпретации пусты. Запуск лабы деда."
-        # Надо будет получить их из лабы дедов
-        # interpretations = laba_deda(json_TRS_string)
-        interact_with_program(build_or_not("lab1", "lab1.exe")) # сейчас просто запуск лабы и запись вывода в файл
+        # ЗДЕСЬ ПОКА НЕ ЗПЕРЕДАЮТСЯ TRS
+        write_trs_and_run_lab("lab1")
         return
     else
         display_interpretations()
