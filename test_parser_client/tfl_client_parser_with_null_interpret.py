@@ -67,7 +67,7 @@ trs_data = [
             "value": "h",
             "childs": [
                 {
-                    "value": "x4",
+                    "value": "x3",
                     "childs": []
                 }
             ]
