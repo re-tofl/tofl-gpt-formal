@@ -4,9 +4,11 @@ using Symbolics
 
 include("parser/parse_TRS_and_apply_interpretations.jl")
 using .Parser
+include("run_old_lab.jl")
+using .Old_Lab_Runner
 include("display_interpretations.jl")
 include("server.jl")
-include("run_old_lab.jl")
+
 
 # Функция для обработки полученных данных
 function process_data()
@@ -15,16 +17,15 @@ function process_data()
         return
     end
 
-    # Применение функции переименования переменных в TRS
-    json_TRS_string = separatevars(json_TRS_string)
 
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
         @info "Интерпретации пусты. Запуск лабы деда."
-        # ЗДЕСЬ ПОКА НЕ ЗПЕРЕДАЮТСЯ TRS
-        write_trs_and_run_lab("lab1")
+        write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
         return
     else
+        # Применение функции переименования переменных в TRS
+        json_TRS_string = separatevars(json_TRS_string)
         display_interpretations()
     end
 

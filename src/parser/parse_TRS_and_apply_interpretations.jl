@@ -5,7 +5,7 @@ include("types.jl")
 using Symbolics
 using JSON
 
-export parse_and_interpret, separatevars, MissingJSONField
+export parse_and_interpret, separatevars, MissingJSONField, json_trs_to_string
 
 struct MissingJSONField <: Exception
            filed
@@ -190,5 +190,45 @@ function term_to_string(term::Term)
         return "$(term.name)(" * join(child_strings, ", ") * ")"
     end
 end
+
+
+"""
+Возвращает вектор строк правил TRS
+"""
+function json_trs_to_string(json_string)
+    all_rules_in_string = Vector()
+
+    parsed_json = JSON.parse(json_string)
+
+    # Проверяем, что parsed_json является массивом правил
+    if !isa(parsed_json, Array)
+        throw(ArgumentError("ожидаетcя массив JSON правил"))
+    end
+
+    # Проходим по каждому правилу в массиве
+    for rule ∈ parsed_json
+        # Проверяем, что правило содержит ключи "left" и "right"
+        if !haskey(rule, "left")
+            throw(MissingJSONField("left"))
+        end
+        if !haskey(rule, "right")
+            throw(MissingJSONField("right"))
+        end
+        # Парсим левую и правую части правила
+        left_term = make_term_from_json(rule["left"])
+        right_term = make_term_from_json(rule["right"])
+
+        # Выводим правило TRS
+        left_term_str = term_to_string(left_term)
+        right_term_str = term_to_string(right_term)
+        rule_in_string = "$left_term_str -> $right_term_str"
+        push!(all_rules_in_string, rule_in_string)
+        println("\nПравило TRS:")
+        println(rule_in_string)
+    end
+
+    return all_rules_in_string
+end
+
 
 end

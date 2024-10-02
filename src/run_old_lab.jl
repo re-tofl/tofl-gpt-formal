@@ -1,6 +1,9 @@
+module Old_Lab_Runner
+
 using Base.Sys
 using Symbolics
-
+    
+export write_trs_and_run_lab
 
 function build_or_not(folder_name, name_file)
     current_dir = pwd()
@@ -95,10 +98,26 @@ function parse_expr(input)
     return all_expr
 end
 
+
+function parse_interpretations(input)
+    lines = split(input, "\n")
+    constructors = Dict()
+    for line in lines
+        line_parts = split(line, ",")
+        name_constr = line_parts[1][end]
+        arguments = replace(line_parts[end], "constants: {Dimensionality:" => "", "Constants:[" => "", "]}" => "")
+        arguments = split(strip(arguments, ' '), " ")
+        constructors[name_constr] = arguments
+    end
+
+    return constructors    
+end
+
+
 function parse_smt_output(smt_answer)
     found_values = Dict{}()
     if startswith(smt_answer, "sat")
-        lines = eachmatch(r"\w+\d+\s*\(\)\s*Int\s+\d+", smt_answer)
+        lines = eachmatch(r"(\w+\d+)*\s*\(\)\s*Int\s+\d+", smt_answer)
         for pattern in lines
             splited_pattern = split(pattern.match, " ")
             variable = splited_pattern[1]
@@ -112,7 +131,8 @@ function parse_smt_output(smt_answer)
     return false, found_values
 end
 
-function substitute_coefs(expressions, replacements)
+
+function substitute_coefs(expressions::Vector{Vector{Dict{String, Any}}}, replacements)
     simplified_expr = expressions
     for i in 1:length(expressions)
         for j in 1:2
@@ -129,38 +149,115 @@ function substitute_coefs(expressions, replacements)
     return simplified_expr
 end
 
+
+function substitute_coefs(expressions::Dict, replacements)
+    simplified_expr = expressions
+    for (name, attr) in expressions
+        for i in 1:length(attr)
+            new_coef = attr[i]
+            name_coefs = eachmatch(r"\w\_\d*", new_coef)
+            for m in name_coefs
+                new_coef = replace(new_coef, m.match => replacements[m.match])
+            end
+            simplified_expr[name][i] = new_coef
+        end
+    end
+    return simplified_expr
+end
+
+
 function parse_output(output)
-    needed_part = strip(split(output, "after similar ones:")[end], [' ', '\n'])
+    needed_part = strip(split(output, "constructor and constants:")[end], [' ', '\n'])
+    interpret_constr = strip(split(needed_part, "variables:")[1], [' ', '\n'])
+    needed_part = strip(split(needed_part, "after similar ones:")[end], [' ', '\n'])
     expr_and_smtout = split(needed_part, "Результат выполнения команды:")
     exprs = strip(expr_and_smtout[1], [' ', '\n'])
     smtout = strip(expr_and_smtout[end], [' ', '\n'])
    
     linear_interpret = parse_expr(exprs)
     is_sat, vars_values = parse_smt_output(smtout)
+    constructors = parse_interpretations(interpret_constr)
     
     if is_sat
-        linear_interpret = substitute_coefs(linear_interpret, vars_values)        
+        linear_interpret = substitute_coefs(linear_interpret, vars_values)
+        constructors =  substitute_coefs(constructors, vars_values)       
     end
     
-    return is_sat, linear_interpret
+    return is_sat, constructors, linear_interpret
 end
 
-#trs_rules=nothing будет убрано, когда определим формат этой переменной
-function write_trs_and_run_lab(name_folder, name_file=name_folder, trs_rules=nothing)
-    # здесь будем конвертировать формат входа в строку для записи в файл
-    # нужно будет определить формат для trs_rules
-    """
-    trs_string = tostring(trs_rules)
+function add_monom(result_string_part, var, coef)
+    if result_string_part == ""
+        result_string_part  *= "$coef" * ((var == "") ? "" : " * " * var)
+    else
+        result_string_part  *= " + " * "$coef" * ((var == "") ? "" : " * " * var)
+    end
+    return result_string_part
+end
+
+
+function interpret_to_string(vector_interpret)
+    result_string = ""
+    for rule in vector_interpret
+        result_string_left = ""
+        result_string_right = ""
+        for (var, coef) in rule[1]
+            result_string_left = add_monom(result_string_left, var, coef)
+        end
+        for (var, coef) in rule[end]
+            result_string_right = add_monom(result_string_right, var, coef)
+        end
+
+        result_string_left = result_string_left == "" ? "0" : result_string_left
+        result_string_right = result_string_right == "" ? "0" : result_string_right
+
+        result_string *= result_string_left * " > " * result_string_right * "\n"
+    end
+    
+    return result_string
+end
+
+function construct_to_string(dict_constr)
+    result_string = ""
+    for (name, attr) in dict_constr
+        result_string *= name * "("
+        count_vars = parse(Int, attr[1])
+        variables = join(["x$i" for i in 1:count_vars], ", ")
+        result_string *= variables * ") = "
+
+        right_part = ""
+        for i in length(attr):-1:2
+            if i == 2
+                right_part = add_monom(right_part, "", attr[i])
+            else
+                right_part = add_monom(right_part, "x"*"$(i-2)", attr[i])
+            end
+        end
+        result_string *= right_part * "\n"
+    end
+    
+    return strip(result_string, '\n')
+end
+
+
+function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=name_folder)
+    trs_string = join(trs_vector_of_strings, "\n")
 
     open("fileRead.txt", "w") do wtf 
         write(wtf, trs_string) 
     end
-    """
     output = interact_with_program(build_or_not(name_folder, name_file))
     
-    is_sat, expr = parse_output(output)
-    @info "В стадии разработки. Для данных из файла is_sat = '$is_sat'"
-    return parse_output(output)
+    is_sat, constructors, expr = parse_output(output)
+    if is_sat
+        println("Есть линейная интерпретация, показывающая завершаемость TRS")
+        println(construct_to_string(constructors))
+        println("Интерпретации после подстановки:")
+        println(strip(interpret_to_string(expr), '\n'))
+    else
+        println("Линейными интерпретациями не удается доказать завершаемость TRS")
+    end
+    return is_sat, constructors, expr
 end
 
-#println(write_trs_and_run_lab("lab1"))
+end
