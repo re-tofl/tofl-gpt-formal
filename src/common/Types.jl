@@ -3,13 +3,13 @@ module Types
 
 export Term, term_to_string
 
-struct Term
+mutable struct Term
     name::String
     childs::Vector{Term}
 end
 
 # Функция для отображения терма в строку
-function term_to_string(term::Term)
+function term_to_string(term)
     if isempty(term.childs)
         return term.name
     else
