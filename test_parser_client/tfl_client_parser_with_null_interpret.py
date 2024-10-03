@@ -48,31 +48,6 @@ trs_data = [
             ]
         }
     },
-    {
-        "left": {
-            "value": "g",
-            "childs": [
-                {
-                    "value": "u",
-                    "childs": [
-                        {
-                            "value": "x3",
-                            "childs": []
-                        }
-                    ]
-                }
-            ]
-        },
-        "right": {
-            "value": "h",
-            "childs": [
-                {
-                    "value": "x3",
-                    "childs": []
-                }
-            ]
-        }
-    }
 ]
 
 # Отправка первого JSON на сервер

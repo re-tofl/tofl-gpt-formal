@@ -1,27 +1,14 @@
 include("common/Types.jl")
 include("parser/parse_TRS_and_apply_interpretations.jl")
 
-using .Types
-using .Parser
+using Main.Types
+using Main.Parser
 using Random
 using JSON
 
 export generate_random_term, rewrite_term
 
-function collect_vars(term)
-    result = Set()
-    inner_collect_vars = (term) -> begin
-        if isempty(term.childs)
-            push!(result, term.name)
-        else
-            foreach(inner_collect_vars, term.childs)
-        end
-    end
-    inner_collect_vars(term)
-    result
-end
-
-function replace_random_leaf(tree, new_term)
+function replace_random_leaf(tree::Types.Term, new_term::Types.Term)
     # Function to collect all leaves in the tree
     function collect_leaves(node, leaves)
         if isempty(node.childs)
@@ -46,7 +33,7 @@ function replace_random_leaf(tree, new_term)
     random_leaf = rand(leaves)
 
     # Replace the random leaf with the new term
-    function replace_leaf(node)
+    replace_leaf = (node) -> begin
         if node ≡ random_leaf
             return new_term
         else
@@ -64,7 +51,7 @@ function build_example_term(term_pairs)
     random_left_part = () -> term_pairs[rand(1:length(term_pairs))][1]
     root = random_left_part()
     for _ = 1:length(term_pairs)
-        root = replace_random_leaf(root, random_left_part)
+        root = replace_random_leaf(root, Term("f", Vector()))
     end
     root
 end
@@ -73,28 +60,28 @@ function rewrite_term()
     
 end
 
-# function check_counterexample(term_pairs, interpretations, var_map)
-#     for pair ∈ term_pairs
-#         left = Parser.apply_interpretation(pair[1], interpretations)
-#         right = Parser.apply_interpretation(pair[2], interpretations)
-#         for (var, value) ∈ var_map
-#             left = replace(left, var => value)
-#             right = replace(right, var => value)
-#         end
-#         if eval(Meta.parse("$left <= $right"))
-#             variables = collect_vars(pair[1]) ∪ collect_vars(pair[2])
-#             var_string = ""
-#             for v ∈ variables
-#                 var_string *= "$v = $(var_map[v])\n"
-#             end
-#             return """
-#             Переданный набор интерпретаций не доказывает завершаемость $(Types.term_to_string(pair[1])) -> $(Types.term_to_string(pair[2]))
-#             $var_string
-#             При подстановке вышеуказанных чисел получаем $(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))
-#             """
-#         end
-#     end
-# end
+function check_counterexample(term_pairs, interpretations, var_map)
+    for pair ∈ term_pairs
+        left = Parser.apply_interpretation(pair[1], interpretations)
+        right = Parser.apply_interpretation(pair[2], interpretations)
+        for (var, value) ∈ var_map
+            left = replace(left, var => value)
+            right = replace(right, var => value)
+        end
+        if eval(Meta.parse("$left <= $right"))
+            variables = collect_vars(pair[1]) ∪ collect_vars(pair[2])
+            var_string = ""
+            for v ∈ variables
+                var_string *= "$v = $(var_map[v])\n"
+            end
+            return """
+            Переданный набор интерпретаций не доказывает завершаемость $(Types.term_to_string(pair[1])) -> $(Types.term_to_string(pair[2]))
+            $var_string
+            При подстановке вышеуказанных чисел получаем $(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))
+            """
+        end
+    end
+end
 
 # # Функция для генерации терма, который может быть переписан по правилам TRS
 # function generate_random_term(trs_rules::Vector{<:Dict})

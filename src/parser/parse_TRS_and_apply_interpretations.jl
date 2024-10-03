@@ -6,7 +6,8 @@ using .Types
 using Symbolics
 using JSON
 
-export parse_and_interpret, separatevars, MissingJSONField, json_trs_to_string
+export parse_and_interpret, separatevars!, MissingJSONField, json_trs_to_string
+export get_term_pairs_from_JSON, parse_interpretations
 
 struct MissingJSONField <: Exception
            field
@@ -33,87 +34,79 @@ function apply_interpretation(term, interpretations)::String
 end
 
 ########################### Функция для переименования переменных в TRS
-function renamevars!(jsonterm1, jsonterm2, renamefunc)
-    rename! = function (j)
-        if isempty(j["childs"])
-            j["value"] = renamefunc(j["value"])
+function renamevars!(term1, term2, renamefunc)
+    rename! = function (t)
+        if isempty(t.childs)
+            t.name = renamefunc(t.name)
         else
-            foreach(rename!, j["childs"])
+            foreach(rename!, t.childs)
         end
     end
 
-    foreach(rename!, (jsonterm1, jsonterm2))
+    foreach(rename!, (term1, term2))
 end
 
 """
 Разделяет переменные в каждом выражении, добавляя
-индекс. Возвращает json-строку 
+индекс
 """
-function separatevars(json_string)::String
-    json_exprs = JSON.parse(json_string)
-    for (index, expr) ∈ enumerate(json_exprs)
-        renamevars!(expr["left"], expr["right"], x -> "$(x)_$index")
+function separatevars!(term_pairs)
+    for (index, pair) ∈ enumerate(term_pairs)
+        renamevars!(pair[1], pair[2], x -> "$(x)_$index")
     end
-    JSON.json(json_exprs)
 end
 
+function collect_vars(term)
+    result = Set()
+    inner_collect_vars = (term) -> begin
+        if isempty(term.childs)
+            push!(result, term.name)
+        else
+            foreach(inner_collect_vars, term.childs)
+        end
+    end
+    inner_collect_vars(term)
+    result
+end
 
 """
 Возвращает вектор переменных и вектор полимномов, всё в виде строк
 """
-function parse_and_interpret(json_string, json_interpretations)
-    variables_array = Vector()
-    simplified_left_parts = Vector()
-
-    parsed_json = JSON.parse(json_string)
-
-    # Проверяем, что parsed_json является массивом правил
+function get_term_pairs_from_JSON(json_TRS_string)
+    parsed_json = JSON.parse(json_TRS_string)
+    term_pairs = Vector()
     if !isa(parsed_json, Array)
         throw(ArgumentError("ожидаетя массив JSON правил"))
     end
-
-    # Проходим по каждому правилу в массиве
     for rule ∈ parsed_json
-        # Проверяем, что правило содержит ключи "left" и "right"
         if !haskey(rule, "left")
             throw(MissingJSONField("left"))
         end
         if !haskey(rule, "right")
             throw(MissingJSONField("right"))
         end
-        # Парсим левую и правую части правила
         left_term = make_term_from_json(rule["left"])
         right_term = make_term_from_json(rule["right"])
+        push!(term_pairs, (left_term, right_term))
+    end
+    term_pairs
+end
 
-        # Создаём словарь var_map для сопоставления переменных из текущего правила
-        var_map = Dict{String, String}()
+function parse_and_interpret(term_pairs, interpretations)
+    variables_array = Vector()
+    simplified_left_parts = Vector()
+    for term_pair ∈ term_pairs
+        left_term = term_pair[1]
+        right_term = term_pair[2]
 
         # Собираем переменные из текущего правила
-        variable_names = Set{String}()
-        function collect_vars(term::Term)
-            if isempty(term.childs)
-                # Если терм — переменная, добавляем его имя в var_map и variable_names
-                var_map[term.name] = term.name
-                push!(variable_names, term.name)
-            else
-                # Терм — функция, обрабатываем её дочерние элементы
-                for child ∈ term.childs
-                    collect_vars(child)
-                end
-            end
-        end
-
-        # Собираем переменные из левой и правой частей
-        collect_vars(left_term)
-        collect_vars(right_term)
+        variable_names = collect_vars(left_term) ∪ collect_vars(right_term)
 
         # Динамически объявляем переменные
         variable_symbols = Symbol.(collect(variable_names))
         @eval @variables $(variable_symbols...)
 
         append!(variables_array, string.(variable_symbols))
-
-        interpretations = parse_interpretations(json_interpretations)
 
         # Применяем интерпретацию к левой и правой части текущего правила
         interpreted_left = apply_interpretation(left_term, interpretations)
@@ -122,25 +115,25 @@ function parse_and_interpret(json_string, json_interpretations)
         # Выводим правило TRSS
         left_term_str = term_to_string(left_term)
         right_term_str = term_to_string(right_term)
-        println("\nПравило TRS:")
-        println("$left_term_str -> $right_term_str")
+
+        @info "Правило TRS:"
+        @info "$left_term_str -> $right_term_str"
 
         # Упрощение интерпретаций
-        left_expr = interpreted_left |> Meta.parse |> eval |> Symbolics.simplify
-        right_expr = interpreted_right |> Meta.parse |> eval |> Symbolics.simplify
-
-        # Дополнительное упрощение с раскрытием скобок
-        left_expr_expanded = Symbolics.expand(left_expr)
-        right_expr_expanded = Symbolics.expand(right_expr)
+        left_expr_expanded, right_expr_expanded = (interpreted_left, interpreted_right) .|> 
+            Meta.parse .|> 
+            eval .|> 
+            Symbolics.simplify .|>
+            Symbolics.expand
 
         # Вычисляем разность и упрощаем
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        println("\nВыражение:")
-        println("$(left_expr_expanded) = $(right_expr_expanded)")
-        println("После упрощения:")
-        println("$(difference_expanded) = 0")
+        @info "Выражение:"
+        @info "$(left_expr_expanded) = $(right_expr_expanded)"
+        @info "После упрощения:"
+        @info "$(difference_expanded) = 0"
 
         # Сохраняем левую часть выражения
         push!(simplified_left_parts, string(difference_expanded))

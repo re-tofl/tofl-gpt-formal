@@ -1,4 +1,4 @@
-module Old_Lab_Runner
+module OldLabRunner
 
 using Base.Sys
 using Symbolics
