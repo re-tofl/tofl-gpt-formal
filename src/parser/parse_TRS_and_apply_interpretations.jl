@@ -1,7 +1,7 @@
 module Parser
 
-#include("../common/Types.jl")
-using ..Types
+include("../common/Types.jl")
+using .Types
 
 using Symbolics
 using JSON
@@ -9,19 +9,19 @@ using JSON
 export parse_and_interpret, separatevars, MissingJSONField, json_trs_to_string
 
 struct MissingJSONField <: Exception
-           filed
+           field
 end
 
 Base.showerror(io::IO, e::MissingJSONField) = print(io, "JSON поле $(e.field) не определено")
 
 ############################ Функция для применения интерпретаций
-function apply_interpretation(term, interpretations, var_map)::String
+function apply_interpretation(term, interpretations)::String
     if isempty(term.childs)
         # Если это переменная, возвращаем ее имя
         return term.name
     else
         # Применяем интерпретацию для функции
-        interpreted_childs = [apply_interpretation(child, interpretations, var_map) for child ∈ term.childs]
+        interpreted_childs = [apply_interpretation(child, interpretations) for child ∈ term.childs]
         if haskey(interpretations, term.name)
             interp_func = interpretations[term.name]
             # Вызываем функцию интерпретации с подставленными дочерними термами
@@ -116,8 +116,8 @@ function parse_and_interpret(json_string, json_interpretations)
         interpretations = parse_interpretations(json_interpretations)
 
         # Применяем интерпретацию к левой и правой части текущего правила
-        interpreted_left = apply_interpretation(left_term, interpretations, var_map)
-        interpreted_right = apply_interpretation(right_term, interpretations, var_map)
+        interpreted_left = apply_interpretation(left_term, interpretations)
+        interpreted_right = apply_interpretation(right_term, interpretations)
 
         # Выводим правило TRSS
         left_term_str = term_to_string(left_term)

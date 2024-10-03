@@ -7,6 +7,44 @@ using JSON
 
 export generate_random_term, rewrite_term
 
+function collect_vars(term::Term)
+    variable_names = Set{String}()
+    if isempty(term.childs)
+        # Если терм — переменная, добавляем его имя в var_map и variable_names
+        var_map[term.name] = term.name
+        push!(variable_names, term.name)
+    else
+        # Терм — функция, обрабатываем её дочерние элементы
+        for child ∈ term.childs
+            collect_vars(child)
+        end
+    end
+    variable_names
+end
+
+function check_counterexample(term_pairs, interpretations, var_map)
+    for pair ∈ term_pairs
+        left = apply_interpretation(pair[1], interpretations)
+        right = apply_interpretation(pair[2], interpretations)
+        for (var, value) ∈ var_map
+            left = replace(left, var => value)
+            right = replace(right, var => value)
+        end
+        if @eval Meta.parse("$left <= $right")
+            variables = collect_vars(pair[1]) ∪ collect_vars(pair[2])
+            var_string = ""
+            for v ∈ variables
+                var_string *= "$v = $(var_map[$v])\n"
+            end
+            return """
+                Переданный набор интерпретаций не доказывает завершаемость $(pair[1]) -> $(pair[2])
+                $var_string
+                При подстановке вышеуказанных чисел получаем $(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))
+            """
+        end
+    end
+end
+
 # Функция для генерации терма, который может быть переписан по правилам TRS
 function generate_random_term(trs_rules::Vector{<:Dict})
     # Выбираем случайное правило из TRS
