@@ -21,28 +21,53 @@ function collect_vars(term)
     result
 end
 
-# function build_example_term(term_pairs)
-#     random_left_part = () -> term_pairs[rand(1:length(term_pairs))][1]
-#     function new_term(term)
-#         new = term
-#         function inner_new_term(term)
-#             if isempty(term.childs)
-#                 random_left_part()
-#             else
-#                 index = rand(1:length(term.childs))
-#                 term.childs[index] = new_term(term.childs[index])
+function replace_random_leaf(tree, new_term)
+    # Function to collect all leaves in the tree
+    function collect_leaves(node, leaves)
+        if isempty(node.childs)
+            push!(leaves, node)
+        else
+            for child in node.childs
+                collect_leaves(child, leaves)
+            end
+        end
+    end
 
-#         end
-#         t = inner_new_term(term)
-#         t
-#     end
-    
-#     term = random_left_part()
-#     for i = 1:length(term_pairs)
-#         term = new_term(term)
-        
-#     end
-# end
+    # Collect all leaves
+    leaves = Vector()
+    collect_leaves(tree, leaves)
+
+    # Check if there are leaves to replace
+    if isempty(leaves)
+        error("The tree has no leaves to replace.")
+    end
+
+    # Select a random leaf
+    random_leaf = rand(leaves)
+
+    # Replace the random leaf with the new term
+    function replace_leaf(node)
+        if node ≡ random_leaf
+            return new_term
+        else
+            for i in 1:length(node.childs)
+                node.childs[i] = replace_leaf(node.childs[i])
+            end
+            return node
+        end
+    end
+
+    return replace_leaf(tree)
+end
+
+function build_example_term(term_pairs)
+    random_left_part = () -> term_pairs[rand(1:length(term_pairs))][1]
+    root = random_left_part()
+    for _ = 1:length(term_pairs)
+        root = replace_random_leaf(root, random_left_part)
+    end
+    root
+end
 
 function rewrite_term()
     
