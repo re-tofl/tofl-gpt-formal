@@ -1,6 +1,7 @@
 module Parser
 
-include("types.jl")
+#include("../common/Types.jl")
+using ..Types
 
 using Symbolics
 using JSON
@@ -181,15 +182,15 @@ function make_term_from_json(json::Dict)
 end
 
 # Функция для отображения терма в человекочитаемом виде
-function term_to_string(term::Term)
-    if isempty(term.childs)
-        return term.name  # Если терм — переменная, возвращаем его имя
-    else
-        # Рекурсивно обрабатываем дочерние термы
-        child_strings = [term_to_string(child) for child ∈ term.childs]
-        return "$(term.name)(" * join(child_strings, ", ") * ")"
-    end
-end
+# function term_to_string(term::Term)
+#     if isempty(term.childs)
+#         return term.name  # Если терм — переменная, возвращаем его имя
+#     else
+#         # Рекурсивно обрабатываем дочерние термы
+#         child_strings = [term_to_string(child) for child ∈ term.childs]
+#         return "$(term.name)(" * join(child_strings, ", ") * ")"
+#     end
+# end
 
 
 """
