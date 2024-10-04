@@ -2,8 +2,7 @@ using JSON
 using Symbolics
 
 include("term_generator.jl")
-using .Types
-using .Parser
+include("Types.jl")
 
 include("run_old_lab.jl")
 using .OldLabRunner

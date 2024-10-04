@@ -1,14 +1,46 @@
-include("common/Types.jl")
-include("parser/parse_TRS_and_apply_interpretations.jl")
+include("Types.jl")
+include("parse_TRS_and_apply_interpretations.jl")
 
-using Main.Types
-using Main.Parser
 using Random
 using JSON
 
-export generate_random_term, rewrite_term
+function change_random_leaf(tree, new_leaf)
+    leaves = []
 
-function replace_random_leaf(tree::Types.Term, new_term::Types.Term)
+    # Вспомогательная рекурсивная функция для сбора листьев
+    function collect_leaves(node, parent, index)
+        if isempty(node.childs)
+            push!(leaves, (node, parent, index))
+        else
+            for (i, child) in enumerate(node.childs)
+                collect_leaves(child, node, i)
+            end
+        end
+    end
+
+    collect_leaves(tree, nothing, nothing)
+
+    if isempty(leaves)
+        # Если в дереве нет листьев
+        return
+    end
+
+    # Выбираем случайный лист
+    idx = rand(1:length(leaves))
+    node, parent, index = leaves[idx]
+
+    if parent ≡ nothing
+        # Если лист является корнем дерева
+        tree.name = new_leaf.name
+        tree.childs = new_leaf.childs
+    else
+        # Заменяем лист на новый
+        parent.childs[index] = new_leaf
+    end
+end
+
+
+function replace_random_leaf(tree, new_term)
     # Function to collect all leaves in the tree
     function collect_leaves(node, leaves)
         if isempty(node.childs)
@@ -48,16 +80,74 @@ function replace_random_leaf(tree::Types.Term, new_term::Types.Term)
 end
 
 function build_example_term(term_pairs)
-    random_left_part = () -> term_pairs[rand(1:length(term_pairs))][1]
-    root = random_left_part()
-    for _ = 1:length(term_pairs)
-        root = replace_random_leaf(root, Term("f", Vector()))
+    random_left_part = () -> deepcopy(term_pairs[rand(1:length(term_pairs))][1])
+    root = Term("x", Vector())
+    for _ = 1:length(term_pairs)*2
+        change_random_leaf(root, random_left_part())
     end
     root
 end
 
-function rewrite_term()
+function bind_terms!(TRS_term, term, binding_map)::Bool
+    arguments_relation = zip(TRS_term.childs, term.childs)
+    ok = true
+    for args ∈ arguments_relation
+        if !isempty(args[1].childs)
+            if args[1].name ≠ args[2].name
+                ok = false
+                break
+            end
+            bind_terms!(args[1], args[2], binding_map)
+        else
+            if haskey(binding_map, args[1])
+                if binding_map[args[1].name] ≠ args[2] ok = false end
+                break
+            else
+                binding_map[args[1].name] = args[2]
+            end
+        end
+    end
+    ok 
+end
+
+function rewrite_term(term, term_pairs)
+    function rename_leaves(inner_term, var_map)
+        if isempty(inner_term.childs)
+            var_map[inner_term.name]
+        else
+            Term(inner_term.name, map(x -> rename_leaves(x, var_map), inner_term.childs))
+        end
+    end
     
+    smth_rewrited = false
+    for t ∈ term_pairs
+        left_part = deepcopy(t[1])
+        right_part = deepcopy(t[2])
+        if left_part.name == term.name
+            arguments_map = Dict()
+            arguments_relation = zip(left_part.childs, term.childs)
+            for args ∈ arguments_relation
+                if !isempty(args[1].childs)
+                    ok = bind_terms!(args[1], args[2], arguments_map)
+                    if !ok @goto outer_end end
+                else
+                    arguments_map[args[1].name] = args[2]
+                end
+            end
+            term = rename_leaves(right_part, arguments_map)
+            smth_rewrited = true
+        end
+        @label outer_end
+    end
+    if smth_rewrited
+        rewrite_term(term, term_pairs)
+    else
+        if !isempty(term.childs)
+            Term(term.name, map(x -> rewrite_term(x, term_pairs), term.childs))
+        else
+            Term(term.name, [])
+        end
+    end
 end
 
 function check_counterexample(term_pairs, interpretations, var_map)
