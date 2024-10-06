@@ -110,8 +110,8 @@ function parse_and_interpret(term_pairs, interpretations)
         left_term_str = term_to_string(left_term)
         right_term_str = term_to_string(right_term)
 
-        @info "Правило TRS:"
-        @info "$left_term_str -> $right_term_str"
+        println("\nПравило TRS:")
+        println("$left_term_str -> $right_term_str")
 
         # Упрощение интерпретаций
         left_expr_expanded, right_expr_expanded = (interpreted_left, interpreted_right) .|> 
@@ -124,10 +124,10 @@ function parse_and_interpret(term_pairs, interpretations)
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        @info "Выражение:"
-        @info "$(left_expr_expanded) = $(right_expr_expanded)"
-        @info "После упрощения:"
-        @info "$(difference_expanded) = 0"
+        println("Выражение:")
+        println("$(left_expr_expanded) = $(right_expr_expanded)")
+        println("После упрощения:")
+        println("$(difference_expanded) = 0")
 
         # Сохраняем левую часть выражения
         push!(simplified_left_parts, string(difference_expanded))

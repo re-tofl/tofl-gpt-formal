@@ -98,12 +98,73 @@ trs_data = [
     }
 ]
 
+trs_data2 = [
+    {
+        "left": {
+            "value": "f",
+            "childs": [
+                {
+                    "value": "x",
+                    "childs": []
+                },
+                {
+                    "value": "h",
+                    "childs": [
+                        {
+                            "value": "y",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "right": {
+            "value": "h",
+            "childs": [
+                {
+                    "value": "f",
+                    "childs": [
+                        {
+                            "value": "x",
+                            "childs": []
+                        },
+                        {
+                            "value": "y",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "left": {
+            "value": "g",
+            "childs": [
+                {
+                    "value": "u",
+                    "childs": [
+                        {
+                            "value": "x",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "right": {
+            "value": "h",
+            "childs": []
+        }
+    }
+]
+
 # Отправка первого JSON на сервер
 response_interpretations = requests.post(url_interpretations, json=interpretations_data)
 print(f"Interpretations status: {response_interpretations.status_code}")
 print(f"Interpretations response: {response_interpretations.text}")
 
 # Отправка второго JSON на сервер
-response_trs = requests.post(url_trs, json=trs_data)
+response_trs = requests.post(url_trs, json=trs_data2)
 print(f"TRS status: {response_trs.status_code}")
 print(f"TRS response: {response_trs.text}")

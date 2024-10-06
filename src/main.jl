@@ -34,6 +34,8 @@ function process_data()
         @info "Интерпретации пусты. Запуск лабы деда."
 
         write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
+        global json_TRS_string = nothing
+        global json_interpret_string = nothing
         return
     end
 
@@ -47,16 +49,18 @@ function process_data()
         term_pairs, interpretations,
     )
 
-    @info "Полученные переменные и левые части правил после подстановки"
-    @info variables_array
-    @info simplified_left_parts
+    println("Полученные переменные и левые части правил после подстановки")
+    println(variables_array)
+    println(simplified_left_parts)
 
     make_smt_file(SMT_PATH, variables_array, simplified_left_parts)
 
     counterexample_vars = get_variables_values_if_sat(SMT_PATH)
     counterexample_vars ≡ nothing ? 
         report_succes(term_pairs, interpretations) :
-        report_failure(term_pairs, interpretations, counterexample_vars)    
+        report_failure(term_pairs, interpretations, counterexample_vars)
+    global json_TRS_string = nothing
+    global json_interpret_string = nothing
 end
 
 port = 8081
@@ -67,6 +71,4 @@ end
 while true
     process_data()
     sleep(1)
-    json_TRS_string = nothing
-    json_interpret_string = nothing
 end
