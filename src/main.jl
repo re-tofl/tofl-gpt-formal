@@ -9,6 +9,18 @@ using .OldLabRunner
 
 include("display_interpretations.jl")
 include("server.jl")
+include("solver_prepare.jl")
+
+const SMT_PATH = "tmp.smt"
+
+# test funcs
+function report_succes(term_pairs, interpretations)
+    get_demo(term_pairs, interpretations)
+end
+
+function report_failure(term_pairs, interpretations, var_map)
+    get_counterexample(term_pairs, interpretations, var_map)
+end
 
 # Функция для обработки полученных данных
 function process_data()
@@ -22,8 +34,6 @@ function process_data()
         @info "Интерпретации пусты. Запуск лабы деда."
 
         write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
-        global json_TRS_string = nothing
-        global json_interpret_string = nothing
         return
     end
 
@@ -41,32 +51,12 @@ function process_data()
     @info variables_array
     @info simplified_left_parts
 
-    # Здесь вы должны вызвать SMT-солвер и проверить завершаемость
-    # Предположим, что солвер подтвердил завершаемость
-    # solver_result = true  # Замените на реальный результат
+    make_smt_file(SMT_PATH, variables_array, simplified_left_parts)
 
-    # if solver_result
-    #     # После получения подтверждения от SMT-солвера
-    #     # Парсим правила TRS из JSON-строки
-    #     parsed_json = JSON.parse(json_TRS_string)
-
-    #     # Явно приводим к нужному типу
-    #     # trs_rules = Vector{Dict{String, Any}}(parsed_json)
-
-    #     # # Генерируем случайный терм
-    #     # random_term = generate_random_term(trs_rules)
-    #     # println("\nСгенерированный случайный терм:")
-    #     # println(term_to_string(random_term))
-
-    #     # # Переписываем терм согласно правилам TRS
-    #     # rewritten_term = rewrite_term(random_term, trs_rules)
-    #     # println("\nПереписанный терм:")
-    #     # println(term_to_string(rewritten_term))
-    # end
-
-    # Очищаем данные после обработки
-    global json_TRS_string = nothing
-    global json_interpret_string = nothing
+    counterexample_vars = get_variables_values_if_sat(SMT_PATH)
+    counterexample_vars ≡ nothing ? 
+        report_succes(term_pairs, interpretations) :
+        report_failure(term_pairs, interpretations, counterexample_vars)    
 end
 
 port = 8081
@@ -77,4 +67,6 @@ end
 while true
     process_data()
     sleep(1)
+    json_TRS_string = nothing
+    json_interpret_string = nothing
 end
