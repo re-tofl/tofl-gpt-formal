@@ -12,7 +12,7 @@ function change_random_leaf(tree, new_leaf)
         if isempty(node.childs)
             push!(leaves, (node, parent, index))
         else
-            for (i, child) in enumerate(node.childs)
+            for (i, child) ∈ enumerate(node.childs)
                 collect_leaves(child, node, i)
             end
         end
@@ -26,7 +26,7 @@ function change_random_leaf(tree, new_leaf)
     end
 
     # Выбираем случайный лист
-    idx = rand(1:length(leaves))
+    idx = rand(eachindex(leaves))
     node, parent, index = leaves[idx]
 
     if parent ≡ nothing
@@ -46,7 +46,7 @@ function replace_random_leaf(tree, new_term)
         if isempty(node.childs)
             push!(leaves, node)
         else
-            for child in node.childs
+            for child ∈ node.childs
                 collect_leaves(child, leaves)
             end
         end
@@ -69,7 +69,7 @@ function replace_random_leaf(tree, new_term)
         if node ≡ random_leaf
             return new_term
         else
-            for i in 1:length(node.childs)
+            for i ∈ 1:length(node.childs)
                 node.childs[i] = replace_leaf(node.childs[i])
             end
             return node
@@ -80,9 +80,10 @@ function replace_random_leaf(tree, new_term)
 end
 
 function build_example_term(term_pairs)
-    random_left_part = () -> deepcopy(term_pairs[rand(1:length(term_pairs))][1])
+    rewriting_count = min(length(term_pairs)*2, 10)
+    random_left_part = () -> deepcopy(rand(term_pairs)[1])
     root = Term("x", Vector())
-    for _ = 1:length(term_pairs)*2
+    for _ = 1:rewriting_count
         change_random_leaf(root, random_left_part())
     end
     root
@@ -129,7 +130,7 @@ function rewrite_term(term, term_pairs)
             for args ∈ arguments_relation
                 if !isempty(args[1].childs)
                     ok = bind_terms!(args[1], args[2], arguments_map)
-                    if !ok @goto outer_end end
+                    ok || @goto outer_end
                 else
                     arguments_map[args[1].name] = args[2]
                 end
@@ -150,10 +151,35 @@ function rewrite_term(term, term_pairs)
     end
 end
 
-function check_counterexample(term_pairs, interpretations, var_map)
+function get_demo(term_pairs, interpretations)
+    res = ""
+    before = build_example_term(term_pairs)
+    after = rewrite_term(before, term_pairs)
+    res *= "Терм до переписывания: $before\n"
+    res *= "Терм после переписывания: $after\n"
+    vars = collect_vars(before)
+
+    before = apply_interpretation(before, interpretations)
+    after = apply_interpretation(after, interpretations)
+
+    for v ∈ vars 
+        value = string(rand(1:10))
+        before = replace(before, v => value)
+        after = replace(after, v => value)
+    end
+    l_value, r_value = map((before, after)) do x
+        eval(Meta.parse(x))
+    end
+    res *= "Вес терма до переписывания: $l_value\n"
+    res *= "Вес терма после переписывания: $r_value\n"
+
+    res
+end
+
+function get_counterexample(term_pairs, interpretations, var_map)
     for pair ∈ term_pairs
-        left = Parser.apply_interpretation(pair[1], interpretations)
-        right = Parser.apply_interpretation(pair[2], interpretations)
+        left = apply_interpretation(pair[1], interpretations)
+        right = apply_interpretation(pair[2], interpretations)
         for (var, value) ∈ var_map
             left = replace(left, var => value)
             right = replace(right, var => value)
@@ -165,121 +191,10 @@ function check_counterexample(term_pairs, interpretations, var_map)
                 var_string *= "$v = $(var_map[v])\n"
             end
             return """
-            Переданный набор интерпретаций не доказывает завершаемость $(Types.term_to_string(pair[1])) -> $(Types.term_to_string(pair[2]))
+            Переданный набор интерпретаций не доказывает завершаемость $(term_to_string(pair[1])) -> $(term_to_string(pair[2]))
             $var_string
             При подстановке вышеуказанных чисел получаем $(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))
             """
         end
     end
 end
-
-# # Функция для генерации терма, который может быть переписан по правилам TRS
-# function generate_random_term(trs_rules::Vector{<:Dict})
-#     # Выбираем случайное правило из TRS
-#     rule = rand(trs_rules)
-#     left_pattern = rule["left"]
-
-#     # Генерируем терм на основе левой части правила
-#     term = generate_term_from_pattern(left_pattern)
-#     return term
-# end
-
-# # Рекурсивная функция для генерации терма на основе шаблона
-# function generate_term_from_pattern(pattern::Dict)
-#     func_name = pattern["value"]
-#     childs = Term[]
-#     for child_pattern in pattern["childs"]
-#         # Решаем, подставить переменную или функцию
-#         if isempty(child_pattern["childs"])
-#             # Генерируем переменную
-#             var_name = generate_variable_name(child_pattern["value"])
-#             push!(childs, Term(var_name, Term[]))
-#         else
-#             # Рекурсивно генерируем подтерм
-#             child_term = generate_term_from_pattern(child_pattern)
-#             push!(childs, child_term)
-#         end
-#     end
-#     return Term(func_name, childs)
-# end
-
-# # Функция для генерации имени переменной
-# function generate_variable_name(base_name::String)
-#     return "$(base_name)$(rand(1:10))"
-# end
-
-# # Функция для переписывания терма согласно правилам TRS
-# function rewrite_term(term::Term, trs_rules::Vector{<:Dict})
-#     # Поиск первого применимого правила
-#     for rule in trs_rules
-#         left_pattern = parse_json_term(rule["left"])
-#         right_replacement = parse_json_term(rule["right"])
-#         result = match_and_replace(term, left_pattern, right_replacement)
-#         if result !== nothing
-#             return result
-#         end
-#     end
-#     # Если ни одно правило не применимо, возвращаем исходный терм
-#     return term
-# end
-
-# # Функция для преобразования JSON терма в структуру Term
-# function parse_json_term(json_term::Dict)
-#     childs = [parse_json_term(child) for child in json_term["childs"]]
-#     return Term(json_term["value"], childs)
-# end
-
-# # Функция для сопоставления и замены терма по правилу
-# function match_and_replace(term::Term, pattern::Term, replacement::Term)
-#     var_map = Dict{String, Term}()
-#     if match_term(term, pattern, var_map)
-#         return substitute_vars(replacement, var_map)
-#     else
-#         # Рекурсивно пытаемся переписать дочерние термы
-#         for i in 1:length(term.childs)
-#             new_child = match_and_replace(term.childs[i], pattern, replacement)
-#             if new_child !== nothing
-#                 # Создаем новый терм с замененным дочерним термом
-#                 new_childs = copy(term.childs)
-#                 new_childs[i] = new_child
-#                 return Term(term.name, new_childs)
-#             end
-#         end
-#     end
-#     return nothing
-# end
-
-# # Функция для сопоставления термов и заполнения var_map
-# function match_term(term::Term, pattern::Term, var_map::Dict{String, Term})
-#     if is_variable(pattern.name)
-#         var_map[pattern.name] = term
-#         return true
-#     elseif term.name == pattern.name && length(term.childs) == length(pattern.childs)
-#         for (t_child, p_child) in zip(term.childs, pattern.childs)
-#             if !match_term(t_child, p_child, var_map)
-#                 return false
-#             end
-#         end
-#         return true
-#     else
-#         return false
-#     end
-# end
-
-
-# # Функция для проверки, является ли имя переменной (например, начинается с маленькой буквы)
-# function is_variable(name::String)
-#     return startswith(name, "x") || startswith(name, "y") || startswith(name, "z")
-# end
-
-# # Функция для подстановки переменных из var_map в терм
-# function substitute_vars(term::Term, var_map::Dict{String, Term})
-#     if is_variable_name(term.name) && haskey(var_map, term.name)
-#         return var_map[term.name]
-#     else
-#         new_childs = [substitute_vars(child, var_map) for child in term.childs]
-#         return Term(term.name, new_childs)
-#     end
-# end
-
-# end # module TermGenerator
