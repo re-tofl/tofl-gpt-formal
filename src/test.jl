@@ -2,9 +2,10 @@
 include("solver_prepare.jl")
 include("term_generator.jl")
 include("Types.jl")
-# include("parser/parse_TRS_and_apply_interpretations.jl")
+include("parse_TRS_and_apply_interpretations.jl")
 
 using JSON
+using Defer
 
 json_interpret_hardcode = """
 {
@@ -17,7 +18,7 @@ json_interpret_hardcode = """
     {
       "name": "g",
       "variables": ["y"],
-      "expression": "(y + 1)"
+      "expression": "(y + 2)"
     },
     {
       "name": "h",
@@ -40,14 +41,14 @@ json_TRS_hardcode = """
             "value": "f",
             "childs": [
                 {
-                    "value": "x1",
+                    "value": "x",
                     "childs": []
                 },
                 {
                     "value": "h",
                     "childs": [
                         {
-                            "value": "x2",
+                            "value": "y",
                             "childs": []
                         }
                     ]
@@ -61,11 +62,11 @@ json_TRS_hardcode = """
                     "value": "f",
                     "childs": [
                         {
-                            "value": "x1",
+                            "value": "x",
                             "childs": []
                         },
                         {
-                            "value": "x2",
+                            "value": "y",
                             "childs": []
                         }
                     ]
@@ -100,47 +101,26 @@ json_TRS_hardcode = """
     }
 ]
 """
-parsed_TRS = get_term_pairs_from_JSON(json_TRS_hardcode)
-separatevars!(parsed_TRS)
-variables_array, simplified_left_parts = parse_and_interpret(parsed_TRS, parse_interpretations(json_interpret_hardcode))
-make_smt_file("test.smt", variables_array, simplified_left_parts)
-vars = Dict{Any, Any}("x2_1" => "1", "x2_2" => "1", "x1_1" => "1", "y2_2" => "13")
+SMT_PATH = "tmp.smt"
 
+term_pairs = get_term_pairs_from_JSON(json_TRS_hardcode)
+separatevars!(term_pairs)
 interpretations = parse_interpretations(json_interpret_hardcode)
-
-# @info interpretations
-# @info vars
-# println(check_counterexample(term_pairs, interpretations, vars))
-# @show term_to_string(build_example_term(parsed_TRS))
-t = Term(
-    "f",
-    [
-        Term(
-            "g",
-            [
-                Term(
-                    "f",
-                    [Term("x", []), Term("y", [])]
-                )
-            ]
-        ),
-        Term(
-            "g",
-            [Term("y", Vector())]
-        )
-    ]
+# Применение функции переименования переменных в TRS
+# Обрабатываем TRS
+variables_array, simplified_left_parts = parse_and_interpret(
+    term_pairs, interpretations,
 )
 
-trs = [(Term("f", [Term("g", [Term("x", [])]), Term("y", [])]), Term("g", [Term("y", [])]))]
-@show term_to_string(trs[1][1])
-@show term_to_string(trs[1][2])
-@show term_to_string(t)
+make_smt_file(SMT_PATH, variables_array, simplified_left_parts)
 
-# f(g(f(x, y)), g(y))
-# f(g(x), y) -> g(y)
-t = rewrite_term(t, trs)
-expr = apply_interpretation(t, interpretations)
-vars = collect_vars
-var_map = random
-
-@show t
+status, counterexample_vars = get_status_and_variables(SMT_PATH)
+if status == Unknown
+    println("TRS попроще сделай")
+elseif status == Unsat
+    println(get_demo(term_pairs, interpretations))
+elseif status == Sat
+    println(get_counterexample(term_pairs, interpretations, counterexample_vars))
+else
+    println("Ну и ну! Кто-то запорол парсинг ответа солвера")
+end

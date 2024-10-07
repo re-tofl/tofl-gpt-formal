@@ -24,21 +24,30 @@ function make_smt_file(path, variables_array, simplified_left_parts)
     end
     add2solver("))")
     add2solver("(check-sat)")
-    add2solver("(get-model)")
 
     open(path, "w") do file
         write(file, solver_text)
     end
 end
 
-function get_variables_values_if_sat(smt_file)
-    output = open(`z3 $smt_file`, "r") do io
+
+@enum SolverStatus begin
+    Sat = 0
+    Unsat = 1
+    Unknown = 2
+end
+
+function get_status_and_variables(smt_file)
+    output = open(`z3 -model $smt_file`, "r") do io
         read(io, String)
     end
 
     lines = map(strip, split(output, "\n"))
     if lines[1] ≠ "sat"
-        return nothing
+        return lines[1] == "unsat" ? 
+            Unsat : 
+            Unknown, 
+            nothing
     end
     
     result = Dict()
@@ -51,7 +60,7 @@ function get_variables_values_if_sat(smt_file)
         result[var] = value
     end
     
-    result
+    Sat, result
 end
 
 function infix_to_prefix(expr)

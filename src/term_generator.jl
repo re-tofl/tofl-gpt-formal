@@ -90,25 +90,25 @@ function build_example_term(term_pairs)
 end
 
 function bind_terms!(TRS_term, term, binding_map)::Bool
+    TRS_term.name ≠ term.name && return false
+
     arguments_relation = zip(TRS_term.childs, term.childs)
-    ok = true
+    
     for args ∈ arguments_relation
         if !isempty(args[1].childs)
             if args[1].name ≠ args[2].name
-                ok = false
-                break
+                return false
             end
-            bind_terms!(args[1], args[2], binding_map)
+            return bind_terms!(args[1], args[2], binding_map)
         else
             if haskey(binding_map, args[1])
-                if binding_map[args[1].name] ≠ args[2] ok = false end
-                break
+                binding_map[args[1].name] ≠ args[2] && return false
             else
                 binding_map[args[1].name] = args[2]
             end
         end
     end
-    ok 
+    true
 end
 
 function rewrite_term(term, term_pairs)
@@ -155,15 +155,17 @@ function get_demo(term_pairs, interpretations)
     res = ""
     before = build_example_term(term_pairs)
     after = rewrite_term(before, term_pairs)
-    res *= "Терм до переписывания: $before\n"
-    res *= "Терм после переписывания: $after\n"
+    res *= "Терм до переписывания: $(term_to_string(before))\n"
+    res *= "Терм после переписывания: $(term_to_string(after))\n"
     vars = collect_vars(before)
 
     before = apply_interpretation(before, interpretations)
     after = apply_interpretation(after, interpretations)
 
+    res *= "Значения переменных:\n"
     for v ∈ vars 
         value = string(rand(1:10))
+        res *= "$v = $value\n"
         before = replace(before, v => value)
         after = replace(after, v => value)
     end
