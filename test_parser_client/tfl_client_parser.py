@@ -165,6 +165,6 @@ print(f"Interpretations status: {response_interpretations.status_code}")
 print(f"Interpretations response: {response_interpretations.text}")
 
 # Отправка второго JSON на сервер
-response_trs = requests.post(url_trs, json=trs_data2)
+response_trs = requests.post(url_trs, json=trs_data)
 print(f"TRS status: {response_trs.status_code}")
 print(f"TRS response: {response_trs.text}")

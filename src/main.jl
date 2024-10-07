@@ -3,7 +3,7 @@ using Symbolics
 using Defer
 
 include("term_generator.jl")
-include("Types.jl")
+include("types.jl")
 
 include("run_old_lab.jl")
 using .OldLabRunner
@@ -16,10 +16,7 @@ const SMT_PATH = "tmp.smt"
 
 # Функция для обработки полученных данных
 function process_data()
-    @defer () -> 
-        global json_TRS_string = nothing; 
-        global json_interpret_string = nothing
-    
+
     if json_TRS_string ≡ nothing || json_interpret_string ≡ nothing
         @info "Ожидание данных"
         return
@@ -30,6 +27,10 @@ function process_data()
         @info "Интерпретации пусты. Запуск лабы деда."
 
         write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
+
+        # Пока так
+        global json_TRS_string = nothing
+        global json_interpret_string = nothing
         return
     end
 
@@ -53,12 +54,16 @@ function process_data()
     if status == Unknown
         println("TRS попроще сделай")
     elseif status == Unsat
-        get_demo(term_pairs, interpretations)
+        println(get_demo(term_pairs, interpretations))
     elseif status == Sat
-        get_counterexample(term_pairs, interpretations, counterexample_vars)
+        println(get_counterexample(term_pairs, interpretations, counterexample_vars))
     else
         println("Ну и ну! Кто-то запорол парсинг ответа солвера")
     end
+
+    # Пока так
+    global json_TRS_string = nothing
+    global json_interpret_string = nothing
 end
 
 port = 8081
@@ -67,6 +72,6 @@ port = 8081
 end
 
 while true
-    @scope process_data()
+    process_data()
     sleep(1)
 end

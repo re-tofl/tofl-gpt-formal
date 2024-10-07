@@ -1,4 +1,4 @@
-include("Types.jl")
+include("types.jl")
 
 using Symbolics
 using JSON

@@ -1,4 +1,4 @@
-include("Types.jl")
+include("types.jl")
 include("parse_TRS_and_apply_interpretations.jl")
 
 using Random
