@@ -41,7 +41,7 @@ end
 
 
 function replace_random_leaf(tree, new_term)
-    # Function to collect all leaves in the tree
+    # Функция для сбора всех листьев дерева
     function collect_leaves(node, leaves)
         if isempty(node.childs)
             push!(leaves, node)
@@ -52,19 +52,18 @@ function replace_random_leaf(tree, new_term)
         end
     end
 
-    # Collect all leaves
+    # Сбор листьев
     leaves = Vector()
     collect_leaves(tree, leaves)
 
-    # Check if there are leaves to replace
     if isempty(leaves)
-        error("The tree has no leaves to replace.")
+        error("У дерева нет листьев")
     end
 
-    # Select a random leaf
+    # Выбор рандомного листа
     random_leaf = rand(leaves)
 
-    # Replace the random leaf with the new term
+    # Замена рандомного листа
     replace_leaf = (node) -> begin
         if node ≡ random_leaf
             return new_term
