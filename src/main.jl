@@ -27,7 +27,7 @@ function process_data()
 
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
-        @info "Интерпретации пусты. Запуск лабы деда."
+        @info "Интерпретации пусты. Запуск прошлогодней лабы"
 
         is_sat, interpretations = write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
         if is_sat
@@ -46,6 +46,9 @@ function process_data()
         variables_array, simplified_left_parts = parse_and_interpret(
             term_pairs, interpretations,
         )
+        println("Полученные переменные и левые части правил после подстановки")
+        println(variables_array)
+        println(simplified_left_parts)
 
         make_smt_file(SMT_PATH, variables_array, simplified_left_parts)
 

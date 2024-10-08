@@ -5,12 +5,15 @@ using Symbolics
     
 export write_trs_and_run_lab
 
+### Ищем папку проекта на go folder_name c исполняемым файлом name_file (без расширения)
+### Собираем проект или используем существующий исполняемый файл
 function build_or_not(folder_name, name_file)
     current_dir = pwd()
     dirs_to_check = [current_dir, dirname(current_dir)]
     folder_path = ""
 
-    for dir in dirs_to_check
+    # Ищем нужную папку в текущем и родительском каталогах
+    for dir ∈ dirs_to_check
         if isdir(joinpath(dir, folder_name))
             folder_path = joinpath(dir, folder_name)
         end
@@ -19,10 +22,12 @@ function build_or_not(folder_name, name_file)
     postfixes = [".exe", ""]
     is_found = false
     file_path = ""
-    for postfix in postfixes
+
+    # Проверяем наличие искомого исполняемого файла
+    for postfix ∈ postfixes
         target_file = name_file * postfix
         file_path = joinpath(folder_path, target_file)
-        # Проверяем наличие искомого исполняемого файла
+        
         if (isfile(file_path) && isexecutable(file_path))
             is_found = true
             @info "Будет использован '$file_path'"
@@ -35,10 +40,9 @@ function build_or_not(folder_name, name_file)
         cd(folder_path) do
             read(run(`go build .`), )
         end
-        for postfix in postfixes
+        for postfix ∈ postfixes
             target_file = name_file * postfix
             file_path = joinpath(folder_path, target_file)
-            # Проверяем наличие искомого исполняемого файла
             if (isfile(file_path) && isexecutable(file_path))
                 is_found = true
                 @info "Будет использован '$file_path'"
@@ -50,7 +54,7 @@ function build_or_not(folder_name, name_file)
     return "$file_path"
 end
 
-
+### Запуск лабы и перенаправление вывода
 function interact_with_program(path)
     output = ""
     try
@@ -62,60 +66,15 @@ function interact_with_program(path)
         print("Лаба Вячеслава сломалась :( \nПопробуйте другие TRS или добавьте интерпретации\n")
         return true, output
     end
-    
+
     return false, output
-end
-
-
-function parse_map(input)
-    cleaned_string = replace(input, "map[" => "")[1:end-1]
-    result_dict = Dict{String, String}()
-
-    # Разбиение по пробелам
-    pairs = split(cleaned_string, r"\s+(?=\w+:)")
-    
-    for pair in pairs
-        # Разделение ключа и значения по двоеточию
-        key_value = split(pair, ":")
-        
-        if length(key_value) == 2
-            key = strip(key_value[1])
-            result_dict[key] = strip(replace(key_value[2], r"^\[\s*" => "", r"\s*\]$" => ""))
-        end
-    end
-
-    return result_dict    
-end
-
-
-function parse_expr(input)
-    sections = split(input, "\n")
-    num_sections = length(sections)
-    
-    all_expr = Vector{Vector{Dict{String, Any}}}(undef, div(num_sections, 3))
-
-    index = 0
-    for section in sections
-        if startswith(section, r"\d+")
-            index += 1
-            all_expr[index] = [Dict{String, Any}(), Dict{String, Any}()]
-        elseif startswith(section, "left")
-            all_expr[index][1] = parse_map(section[6:end])
-        elseif startswith(section, "right")
-            all_expr[index][2] = parse_map(section[7:end])
-        else 
-            println("Этого не могло случиться О_о")
-        end
-    end
-
-    return all_expr
 end
 
 
 function parse_interpretations(input)
     lines = split(input, "\n")
     constructors = Dict()
-    for line in lines
+    for line ∈ lines
         line_parts = split(line, ",")
         name_constr = line_parts[1][end:end]
         arguments = replace(line_parts[end], "constants: {Dimensionality:" => "", "Constants:[" => "", "]}" => "")
@@ -129,47 +88,29 @@ end
 
 function parse_smt_output(smt_answer)
     found_values = Dict{}()
+    is_sat = false
     if startswith(smt_answer, "sat")
+        is_sat = true
         lines = eachmatch(r"(\w+\d+)*\s*\(\)\s*Int\s+\d+", smt_answer)
-        for pattern in lines
+        for pattern ∈ lines
             splited_pattern = split(pattern.match, " ")
             variable = splited_pattern[1]
             value = splited_pattern[end]
             found_values[variable] = value
         end  
-
-        return true, found_values
     end
 
-    return false, found_values
+    return is_sat, found_values
 end
 
-
-function substitute_coefs(expressions::Vector{Vector{Dict{String, Any}}}, replacements)
-    simplified_expr = expressions
-    for i in 1:length(expressions)
-        for j in 1:2
-            for (var, coef) in expressions[i][j]
-                new_coef = coef
-                name_coefs = eachmatch(r"\w\_\d*", new_coef)
-                for m in name_coefs
-                    new_coef = replace(new_coef, m.match => replacements[m.match])
-                end
-                simplified_expr[i][j][var] = new_coef |> Meta.parse |> eval |> Symbolics.simplify
-            end
-        end
-    end
-    return simplified_expr
-end
-
-
+### Подстановка найденных значений коэффициентов линейной интерпретации
 function substitute_coefs(expressions::Dict, replacements)
     simplified_expr = expressions
-    for (name, attr) in expressions
-        for i in 1:length(attr)
+    for (name, attr) ∈ expressions
+        for i ∈ eachindex(attr)
             new_coef = attr[i]
             name_coefs = eachmatch(r"\w\_\d*", new_coef)
-            for m in name_coefs
+            for m ∈ name_coefs
                 new_coef = replace(new_coef, m.match => replacements[m.match])
             end
             simplified_expr[name][i] = new_coef
@@ -178,27 +119,24 @@ function substitute_coefs(expressions::Dict, replacements)
     return simplified_expr
 end
 
-
+### Для вывода лабы
 function parse_output(output)
     needed_part = strip(split(output, "constructor and constants:")[end], [' ', '\n'])
     interpret_constr = strip(split(needed_part, "variables:")[1], [' ', '\n'])
     needed_part = strip(split(needed_part, "after similar ones:")[end], [' ', '\n'])
-    expr_and_smtout = split(needed_part, "Результат выполнения команды:")
-    exprs = strip(expr_and_smtout[1], [' ', '\n'])
-    smtout = strip(expr_and_smtout[end], [' ', '\n'])
-   
-    linear_interpret = parse_expr(exprs)
+    smtout = strip(split(needed_part, "Результат выполнения команды:")[end], [' ', '\n'])
+
     is_sat, vars_values = parse_smt_output(smtout)
     constructors = parse_interpretations(interpret_constr)
     
     if is_sat
-        linear_interpret = substitute_coefs(linear_interpret, vars_values)
-        constructors =  substitute_coefs(constructors, vars_values)       
+        constructors = substitute_coefs(constructors, vars_values)       
     end
     
-    return is_sat, constructors, linear_interpret
+    return is_sat, constructors
 end
 
+### Для строкового представления слагаемых
 function add_monom(result_string_part, var, coef)
     if result_string_part == ""
         result_string_part  *= "$coef" * ((var == "") ? "" : " * " * var)
@@ -208,38 +146,17 @@ function add_monom(result_string_part, var, coef)
     return result_string_part
 end
 
-
-function interpret_to_string(vector_interpret)
-    result_string = ""
-    for rule in vector_interpret
-        result_string_left = ""
-        result_string_right = ""
-        for (var, coef) in rule[1]
-            result_string_left = add_monom(result_string_left, var, coef)
-        end
-        for (var, coef) in rule[end]
-            result_string_right = add_monom(result_string_right, var, coef)
-        end
-
-        result_string_left = result_string_left == "" ? "0" : result_string_left
-        result_string_right = result_string_right == "" ? "0" : result_string_right
-
-        result_string *= result_string_left * " > " * result_string_right * "\n"
-    end
-    
-    return result_string
-end
-
+### Для вывода интерпретаций
 function construct_to_string(dict_constr)
     result_string = ""
-    for (name, attr) in dict_constr
+    for (name, attr) ∈ dict_constr
         result_string *= name * "("
         count_vars = parse(Int, attr[1])
         variables = join(["x$i" for i in 1:count_vars], ", ")
         result_string *= variables * ") = "
 
         right_part = ""
-        for i in length(attr):-1:2
+        for i ∈ length(attr):-1:2
             if i == 2
                 right_part = add_monom(right_part, "", attr[i])
             else
@@ -252,7 +169,8 @@ function construct_to_string(dict_constr)
     return strip(result_string, '\n')
 end
 
-
+### Приводим полученные интерпретации к виду, который
+### используется в основной части
 function constructors_to_func(constructors)
     interpretations::Dict{String, Function} = Dict()
 
@@ -260,7 +178,7 @@ function constructors_to_func(constructors)
         variables = ["x$i" for i in 1:parse(Int, attr[1])]
         expression = ""
 
-        for i in length(attr):-1:2
+        for i ∈ length(attr):-1:2
             if i == 2
                 expression = add_monom(expression, "", attr[i])
             else
@@ -272,9 +190,7 @@ function constructors_to_func(constructors)
         # Создаем функцию с необходимым количеством переменных
         interpretations[name] = (vars...) -> begin
             expr = expression
-            # Заменяем переменные в выражении на соответствующие переменные из TRS
             for (i, var) ∈ enumerate(variables)
-                # Используем регулярные выражения для замены целых слов
                 expr = replace(expr, Regex("\\b$(var)\\b") => vars[i])
             end
             return expr
@@ -285,7 +201,7 @@ function constructors_to_func(constructors)
 end
 
 
-
+### Основная функция: готовим файл ввода для лабы и ищем путь к ней
 function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=name_folder)
     trs_string = join(trs_vector_of_strings, "\n")
 
@@ -295,10 +211,15 @@ function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=nam
     err, output = interact_with_program(build_or_not(name_folder, name_file))
 
     if err
-        return false, false, false
+        return false, false
+    end
+
+    if length(split(output, "команды:\n")[end]) < 3
+        println("Проверьте наличие z3")
+        return false, false
     end
     
-    is_sat, constructors, _ = parse_output(output)
+    is_sat, constructors = parse_output(output)
     if is_sat
         println("Есть линейная интерпретация, показывающая завершаемость TRS")
         println(construct_to_string(constructors))
