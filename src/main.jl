@@ -22,45 +22,45 @@ function process_data()
         return
     end
 
+    term_pairs = get_term_pairs_from_JSON(json_TRS_string)
+    separatevars!(term_pairs)
+
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
         @info "Интерпретации пусты. Запуск лабы деда."
 
-        write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
-
-        # Пока так
-        global json_TRS_string = nothing
-        global json_interpret_string = nothing
-        return
-    end
-
-    term_pairs = get_term_pairs_from_JSON(json_TRS_string)
-    separatevars!(term_pairs)
-    interpretations = parse_interpretations(json_interpret_string)
-    # Применение функции переименования переменных в TRS
-    display_interpretations()
-    # Обрабатываем TRS
-    variables_array, simplified_left_parts = parse_and_interpret(
-        term_pairs, interpretations,
-    )
-
-    println("Полученные переменные и левые части правил после подстановки")
-    println(variables_array)
-    println(simplified_left_parts)
-
-    make_smt_file(SMT_PATH, variables_array, simplified_left_parts)
-
-    status, counterexample_vars = get_status_and_variables(SMT_PATH)
-    if status == Unknown
-        println("TRS попроще сделай")
-    elseif status == Unsat
-        println(get_demo(term_pairs, interpretations))
-    elseif status == Sat
-        println(get_counterexample(term_pairs, interpretations, counterexample_vars))
+        is_sat, interpretations = write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
+        if is_sat
+            variables_array, simplified_left_parts = parse_and_interpret(
+                term_pairs, interpretations,
+            )
+            println("Полученные переменные и левые части правил после подстановки")
+            println(variables_array)
+            println(simplified_left_parts)
+            println(get_demo(term_pairs, interpretations))
+        end
     else
-        println("Ну и ну! Кто-то запорол парсинг ответа солвера")
-    end
+        interpretations = parse_interpretations(json_interpret_string)
+        display_interpretations()
+        # Обрабатываем TRS
+        variables_array, simplified_left_parts = parse_and_interpret(
+            term_pairs, interpretations,
+        )
 
+        make_smt_file(SMT_PATH, variables_array, simplified_left_parts)
+
+        status, counterexample_vars = get_status_and_variables(SMT_PATH)
+        if status == Unknown
+            println("TRS попроще сделай")
+        elseif status == Unsat
+            println(get_demo(term_pairs, interpretations))
+        elseif status == Sat
+            println(get_counterexample(term_pairs, interpretations, counterexample_vars))
+        else
+            println("Ну и ну! Кто-то запорол парсинг ответа солвера")
+        end
+    end
+    
     # Пока так
     global json_TRS_string = nothing
     global json_interpret_string = nothing

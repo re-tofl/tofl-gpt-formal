@@ -52,16 +52,18 @@ end
 
 
 function interact_with_program(path)
-    io = open(`$path`; write=true, read=true)
-    write(io, "2\n")
-    output = read(io, String)
-
-    open("old_lab_output.txt", "w") do wtf 
-        write(wtf, output) 
+    output = ""
+    try
+        output = open(`$path`, "r+") do io
+            write(io, "2\n")
+            read(io, String)
+        end
+    catch 
+        print("Лаба Вячеслава сломалась :( \nПопробуйте другие TRS или добавьте интерпретации\n")
+        return true, output
     end
-
-    close(io)
-    return output
+    
+    return false, output
 end
 
 
@@ -115,7 +117,7 @@ function parse_interpretations(input)
     constructors = Dict()
     for line in lines
         line_parts = split(line, ",")
-        name_constr = line_parts[1][end]
+        name_constr = line_parts[1][end:end]
         arguments = replace(line_parts[end], "constants: {Dimensionality:" => "", "Constants:[" => "", "]}" => "")
         arguments = split(strip(arguments, ' '), " ")
         constructors[name_constr] = arguments
@@ -251,24 +253,59 @@ function construct_to_string(dict_constr)
 end
 
 
+function constructors_to_func(constructors)
+    interpretations::Dict{String, Function} = Dict()
+
+    for (name, attr) ∈ constructors
+        variables = ["x$i" for i in 1:parse(Int, attr[1])]
+        expression = ""
+
+        for i in length(attr):-1:2
+            if i == 2
+                expression = add_monom(expression, "", attr[i])
+            else
+                expression = add_monom(expression, "x"*"$(i-2)", attr[i])
+            end
+        end
+        expression = "(" * expression * ")"
+
+        # Создаем функцию с необходимым количеством переменных
+        interpretations[name] = (vars...) -> begin
+            expr = expression
+            # Заменяем переменные в выражении на соответствующие переменные из TRS
+            for (i, var) ∈ enumerate(variables)
+                # Используем регулярные выражения для замены целых слов
+                expr = replace(expr, Regex("\\b$(var)\\b") => vars[i])
+            end
+            return expr
+        end
+    end
+
+    interpretations
+end
+
+
+
 function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=name_folder)
     trs_string = join(trs_vector_of_strings, "\n")
 
     open("fileRead.txt", "w") do wtf 
         write(wtf, trs_string) 
     end
-    output = interact_with_program(build_or_not(name_folder, name_file))
+    err, output = interact_with_program(build_or_not(name_folder, name_file))
+
+    if err
+        return false, false, false
+    end
     
-    is_sat, constructors, expr = parse_output(output)
+    is_sat, constructors, _ = parse_output(output)
     if is_sat
         println("Есть линейная интерпретация, показывающая завершаемость TRS")
         println(construct_to_string(constructors))
-        println("Интерпретации после подстановки:")
-        println(strip(interpret_to_string(expr), '\n'))
     else
         println("Линейными интерпретациями не удается доказать завершаемость TRS")
     end
-    return is_sat, constructors, expr
+    return is_sat, constructors_to_func(constructors)
 end
 
 end
