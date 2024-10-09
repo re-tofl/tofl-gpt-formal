@@ -16,6 +16,14 @@ Pkg.add("JSON")
 Pkg.add("Random")
 Pkg.add("Symbolics")
 ```
+## Установка других  зависимостей
+
+Для работы программы также необходим z3 и компилятор Go. Установить их можно командами:
+
+```bash
+sudo apt install golang
+sudo apt install z3
+```
 
 ## Запуск программы
 
