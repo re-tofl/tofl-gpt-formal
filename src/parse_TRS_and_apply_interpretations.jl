@@ -113,12 +113,6 @@ function parse_and_interpret(term_pairs, interpretations)
 
         println("\nПравило TRS:")
 
-        # global reply_to_chat = string(
-        #     reply_to_chat,
-        #     "{\"format\": \"code\", \"data\": \"",
-        #     "$left_term_str -> $right_term_str\"}, "
-        # )
-
         code_reply("$left_term_str -> $right_term_str")
 
         println("$left_term_str -> $right_term_str")

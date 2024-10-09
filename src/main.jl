@@ -39,78 +39,32 @@ function process_data()
 
     # Если интерпретации предоставлены, но пустые
     if json_interpret_string == "{}"
-
-
-        # global reply_to_chat = string(
-        #     reply_to_chat,
-        #     "{\"format\": \"text\", \"data\": \"",
-        #     "Интерпретации не переданы и, в случае успеха, будут взяты из прошлогодней лабы\"}, "
-        # )
-
         text_reply("Интерпретации не переданы и, в случае успеха, будут взяты из прошлогодней лабы")
 
         @info "Интерпретации пусты. Запуск прошлогодней лабы"
 
         is_sat, interpretations = write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
         if is_sat
-
-            # global reply_to_chat = string(
-            #     reply_to_chat,
-            #     "{\"format\": \"text\", \"data\": \"",
-            #     "Правила TRS:\\n\"}, "
-            # )
-
             text_reply("Правила TRS:")
 
             variables_array, simplified_left_parts = parse_and_interpret(
                 term_pairs, interpretations,
             )
-
-            # global reply_to_chat = string(
-            #     reply_to_chat,
-            #     "{\"format\": \"text\", \"data\": \"",
-            #     "Правила TRS после упрощения:\\n\"}, "
-            # )
             text_reply("Правила TRS после упрощения:")
 
             for part ∈ simplified_left_parts
-                # global reply_to_chat = string(
-                #     reply_to_chat,
-                #     "{\"format\": \"code\", \"data\": \"",
-                #     "$part -> 0\"}, "
-                # )
                 code_reply("$part -> 0")
             end
-
-            # global reply_to_chat = string(
-            #     reply_to_chat,
-            #     "{\"format\": \"text\", \"data\": \"",
-            #     "\\nДемонстрация на случайном терме:\"}, "
-            # )
-
             text_reply("Демонстрация на случайном терме:")
 
             println(get_demo(term_pairs, interpretations))
         end
 
     else
-
-        # global reply_to_chat = string(
-        #     reply_to_chat,
-        #     "{\"format\": \"text\", \"data\": \"",
-        #     "Интерпретации переданы. Исходные интерпретации:\"}, "
-        # )
-
         text_reply("Интерпретации переданы. Исходные интерпретации:")
 
         interpretations = parse_interpretations(json_interpret_string)
         display_interpretations()
-
-        # global reply_to_chat = string(
-        #     reply_to_chat,
-        #     "{\"format\": \"text\", \"data\": \"",
-        #     "Правила TRS:\\n\"}, "
-        # )
 
         text_reply("Правила TRS:")
         
@@ -119,20 +73,9 @@ function process_data()
             term_pairs, interpretations,
         )
 
-        # global reply_to_chat = string(
-        #     reply_to_chat,
-        #     "{\"format\": \"text\", \"data\": \"",
-        #     "Правила TRS после упрощения:\\n\"}, "
-        # )
-
         text_reply("Правила TRS после упрощения:")
 
         for part ∈ simplified_left_parts
-            # global reply_to_chat = string(
-            #     reply_to_chat,
-            #     "{\"format\": \"code\", \"data\": \"",
-            #     "$part -> 0\"}, "
-            # )
             code_reply("$part -> 0")
         end
 
@@ -150,14 +93,6 @@ function process_data()
         end
     end
 
-    # global reply_to_chat = string(
-    #     reply_to_chat,
-    #     "]}"
-    # )
-
-    # Удалил лишнюю запятую
-    # global reply_to_chat = reply_to_chat[1:end-4] * reply_to_chat[end-2:end]
-
     println(JSON.json(reply_to_chat))
 
     # Наш ответ в чат
@@ -166,7 +101,6 @@ function process_data()
     # Обнуление для следующего запроса
     global reply_to_chat = default_reply
 
-    # Пока так
     global json_TRS_string = nothing
     global json_interpret_string = nothing
 end
