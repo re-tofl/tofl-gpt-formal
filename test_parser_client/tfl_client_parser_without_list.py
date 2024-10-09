@@ -15,14 +15,14 @@ trs_data = [
             "value": "f",
             "childs": [
                 {
-                    "value": "x1",
+                    "value": "x",
                     "childs": []
                 },
                 {
                     "value": "h",
                     "childs": [
                         {
-                            "value": "x2",
+                            "value": "y",
                             "childs": []
                         }
                     ]
@@ -36,18 +36,18 @@ trs_data = [
                     "value": "f",
                     "childs": [
                         {
-                            "value": "x1",
+                            "value": "x",
                             "childs": []
                         },
                         {
-                            "value": "x2",
+                            "value": "y",
                             "childs": []
                         }
                     ]
                 }
             ]
         }
-    },
+    }
 ]
 
 trs_data2 = [

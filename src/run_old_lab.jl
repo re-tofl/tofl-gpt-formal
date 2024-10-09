@@ -62,7 +62,14 @@ function interact_with_program(path)
             write(io, "2\n")
             read(io, String)
         end
-    catch 
+    catch
+
+        global Main.json_reply_to_chat = string(
+            Main.json_reply_to_chat,
+            "{\"format\": \"text\", \"data\": \"",
+            "Лаба Вячеслава сломалась :( \\nПопробуйте другие TRS или добавьте интерпретации\"}, "
+        )
+
         print("Лаба Вячеслава сломалась :( \nПопробуйте другие TRS или добавьте интерпретации\n")
         return true, output
     end
@@ -147,7 +154,7 @@ function add_monom(result_string_part, var, coef)
 end
 
 ### Для вывода интерпретаций
-function construct_to_string(dict_constr)
+function construct_to_string(dict_constr, for_chat)
     result_string = ""
     for (name, attr) ∈ dict_constr
         result_string *= name * "("
@@ -163,10 +170,15 @@ function construct_to_string(dict_constr)
                 right_part = add_monom(right_part, "x"*"$(i-2)", attr[i])
             end
         end
-        result_string *= right_part * "\n"
+        if for_chat
+            result_string *= right_part * "\\n"
+        else
+            result_string *= right_part * "\n"
+        end
     end
     
-    return strip(result_string, '\n')
+    #return strip(result_string, '\n')
+    result_string
 end
 
 ### Приводим полученные интерпретации к виду, который
@@ -215,15 +227,39 @@ function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=nam
     end
 
     if length(split(output, "команды:\n")[end]) < 3
+
+        global Main.json_reply_to_chat = string(
+            Main.json_reply_to_chat,
+            "{\"format\": \"text\", \"data\": \"",
+            "Проверьте наличие z3\"}, "
+        )
+
         println("Проверьте наличие z3")
         return false, false
     end
     
     is_sat, constructors = parse_output(output)
     if is_sat
+
+        global Main.json_reply_to_chat = string(
+            Main.json_reply_to_chat,
+            "{\"format\": \"text\", \"data\": \"",
+            "Есть линейная интерпретация, показывающая завершаемость TRS\\n\"}, ",
+            "{\"format\": \"code\", \"data\": \"",
+            construct_to_string(constructors, true),
+            "\\n\"}, "
+        )
+
         println("Есть линейная интерпретация, показывающая завершаемость TRS")
-        println(construct_to_string(constructors))
+        println(construct_to_string(constructors, false))
     else
+
+        global Main.json_reply_to_chat = string(
+            Main.json_reply_to_chat,
+            "{\"format\": \"text\", \"data\": \"",
+            "Линейными интерпретациями не удается доказать завершаемость TRS\\n\"}, "
+        )
+
         println("Линейными интерпретациями не удается доказать завершаемость TRS")
     end
     return is_sat, constructors_to_func(constructors)

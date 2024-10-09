@@ -111,6 +111,13 @@ function parse_and_interpret(term_pairs, interpretations)
         right_term_str = term_to_string(right_term)
 
         println("\nПравило TRS:")
+
+        global json_reply_to_chat = string(
+            json_reply_to_chat,
+            "{\"format\": \"code\", \"data\": \"",
+            "$left_term_str -> $right_term_str\"}, "
+        )
+
         println("$left_term_str -> $right_term_str")
 
         # Упрощение интерпретаций
@@ -124,8 +131,8 @@ function parse_and_interpret(term_pairs, interpretations)
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        println("Выражение:")
-        println("$(left_expr_expanded) = $(right_expr_expanded)")
+        # println("Выражение:")
+        # println("$(left_expr_expanded) = $(right_expr_expanded)")
         println("После упрощения:")
         println("$(difference_expanded) = 0")
 
@@ -211,8 +218,8 @@ function json_trs_to_string(json_string)
         right_term_str = term_to_string(right_term)
         rule_in_string = "$left_term_str -> $right_term_str"
         push!(all_rules_in_string, rule_in_string)
-        println("\nПравило TRS:")
-        println(rule_in_string)
+        # println("\nПравило TRS:")
+        # println(rule_in_string)
     end
 
     return all_rules_in_string
