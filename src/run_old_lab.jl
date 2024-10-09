@@ -1,5 +1,7 @@
 module OldLabRunner
 
+include("reply_macros.jl")
+
 using Base.Sys
 using Symbolics
     
@@ -64,11 +66,13 @@ function interact_with_program(path)
         end
     catch
 
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Лаба Вячеслава сломалась :( \\nПопробуйте другие TRS или добавьте интерпретации\"}, "
-        )
+        # global Main.reply_to_chat = string(
+        #     Main.reply_to_chat,
+        #     "{\"format\": \"text\", \"data\": \"",
+        #     "Лаба Вячеслава сломалась :( \\nПопробуйте другие TRS или добавьте интерпретации\"}, "
+        # )
+
+        text_reply("Лаба Вячеслава сломалась :( Попробуйте другие TRS или добавьте интерпретации")
 
         print("Лаба Вячеслава сломалась :( \nПопробуйте другие TRS или добавьте интерпретации\n")
         return true, output
@@ -228,8 +232,8 @@ function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=nam
 
     if length(split(output, "команды:\n")[end]) < 3
 
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
+        global Main.reply_to_chat = string(
+            Main.reply_to_chat,
             "{\"format\": \"text\", \"data\": \"",
             "Проверьте наличие z3\"}, "
         )
@@ -241,24 +245,28 @@ function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=nam
     is_sat, constructors = parse_output(output)
     if is_sat
 
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Есть линейная интерпретация, показывающая завершаемость TRS\\n\"}, ",
-            "{\"format\": \"code\", \"data\": \"",
-            construct_to_string(constructors, true),
-            "\\n\"}, "
-        )
+        # global Main.reply_to_chat = string(
+        #     Main.reply_to_chat,
+        #     "{\"format\": \"text\", \"data\": \"",
+        #     "Есть линейная интерпретация, показывающая завершаемость TRS\\n\"}, ",
+        #     "{\"format\": \"code\", \"data\": \"",
+        #     construct_to_string(constructors, true),
+        #     "\\n\"}, "
+        # )
+
+        text_reply("Есть линейная интерпретация, показывающая завершаемость TRS")
+        code_reply("$construct_to_string(constructors, true)")
 
         println("Есть линейная интерпретация, показывающая завершаемость TRS")
         println(construct_to_string(constructors, false))
     else
 
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Линейными интерпретациями не удается доказать завершаемость TRS\\n\"}, "
-        )
+        # global Main.reply_to_chat = string(
+        #     Main.reply_to_chat,
+        #     "{\"format\": \"text\", \"data\": \"",
+        #     "Линейными интерпретациями не удается доказать завершаемость TRS\\n\"}, "
+        # )
+        text_reply("Линейными интерпретациями не удается доказать завершаемость TRS")
 
         println("Линейными интерпретациями не удается доказать завершаемость TRS")
     end

@@ -1,4 +1,5 @@
 include("types.jl")
+include("reply_macros.jl")
 include("parse_TRS_and_apply_interpretations.jl")
 
 using Random
@@ -155,17 +156,21 @@ function get_demo(term_pairs, interpretations)
     before = build_example_term(term_pairs)
     after = rewrite_term(before, term_pairs)
 
-    global Main.json_reply_to_chat = string(
-        Main.json_reply_to_chat,
-        "{\"format\": \"text\", \"data\": \"",
-        "Терм до переписывания:\"}, ",
-        "{\"format\": \"code\", \"data\": \"",
-        "$(term_to_string(before))\"}, ",
-        "{\"format\": \"text\", \"data\": \"",
-        "Терм после переписывания:\"}, ",
-        "{\"format\": \"code\", \"data\": \"",
-        "$(term_to_string(after))\"}, "
-    )
+    # global Main.reply_to_chat = string(
+    #     Main.reply_to_chat,
+    #     "{\"format\": \"text\", \"data\": \"",
+    #     "Терм до переписывания:\"}, ",
+    #     "{\"format\": \"code\", \"data\": \"",
+    #     "$(term_to_string(before))\"}, ",
+    #     "{\"format\": \"text\", \"data\": \"",
+    #     "Терм после переписывания:\"}, ",
+    #     "{\"format\": \"code\", \"data\": \"",
+    #     "$(term_to_string(after))\"}, "
+    # )
+    text_reply("Терм до переписывания:")
+    code_reply("$(term_to_string(before))")
+    text_reply("Терм после переписывания:")
+    code_reply("$(term_to_string(after))")
 
     res *= "Терм до переписывания: $(term_to_string(before))\n"
     res *= "Терм после переписывания: $(term_to_string(after))\n"
@@ -174,21 +179,24 @@ function get_demo(term_pairs, interpretations)
     before = apply_interpretation(before, interpretations)
     after = apply_interpretation(after, interpretations)
 
-    global Main.json_reply_to_chat = string(
-        Main.json_reply_to_chat,
-        "{\"format\": \"text\", \"data\": \"",
-        "Значения переменных:\"}, "
-    )
+    # global Main.reply_to_chat = string(
+    #     Main.reply_to_chat,
+    #     "{\"format\": \"text\", \"data\": \"",
+    #     "Значения переменных:\"}, "
+    # )
+
+    text_reply("Значения переменных:")
 
     res *= "Значения переменных:\n"
     for v ∈ vars 
         value = string(rand(1:10))
 
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"code\", \"data\": \"",
-            "$v = $value\"}, "
-        )
+        # global Main.reply_to_chat = string(
+        #     Main.reply_to_chat,
+        #     "{\"format\": \"code\", \"data\": \"",
+        #     "$v = $value\"}, "
+        # )
+        code_reply("$v = $value")
 
         res *= "$v = $value\n"
         before = replace(before, v => value)
@@ -198,17 +206,22 @@ function get_demo(term_pairs, interpretations)
         eval(Meta.parse(x))
     end
 
-    global Main.json_reply_to_chat = string(
-        Main.json_reply_to_chat,
-        "{\"format\": \"text\", \"data\": \"",
-        "\\nВес терма до переписывания:\"}, ",
-        "{\"format\": \"code\", \"data\": \"",
-        "$l_value\"}, ",
-        "{\"format\": \"text\", \"data\": \"",
-        "Вес терма после переписывания:\"}, ",
-        "{\"format\": \"code\", \"data\": \"",
-        "$r_value\"}, "
-    )
+    # global Main.reply_to_chat = string(
+    #     Main.reply_to_chat,
+    #     "{\"format\": \"text\", \"data\": \"",
+    #     "\\nВес терма до переписывания:\"}, ",
+    #     "{\"format\": \"code\", \"data\": \"",
+    #     "$l_value\"}, ",
+    #     "{\"format\": \"text\", \"data\": \"",
+    #     "Вес терма после переписывания:\"}, ",
+    #     "{\"format\": \"code\", \"data\": \"",
+    #     "$r_value\"}, "
+    # )
+    # @show Main.reply_to_chat
+    text_reply("Вес терма до переписывания:")
+    code_reply("$l_value")
+    text_reply("Вес терма после переписывания:")
+    code_reply("$r_value")
 
     res *= "Вес терма до переписывания: $l_value\n"
     res *= "Вес терма после переписывания: $r_value\n"
@@ -233,19 +246,25 @@ function get_counterexample(term_pairs, interpretations, var_map)
                 var_string_to_chat *= "$v = $(var_map[v])\\n"
             end
 
-            global Main.json_reply_to_chat = string(
-                Main.json_reply_to_chat,
-                "{\"format\": \"text\", \"data\": \"",
-                "Переданный набор интерпретаций не доказывает завершаемость\"}, ",
-                "{\"format\": \"code\", \"data\": \"",
-                "$(term_to_string(pair[1])) -> $(term_to_string(pair[2]))\"}, ",
-                "{\"format\": \"code\", \"data\": \"",
-                "$var_string_to_chat\"}, ",
-                "{\"format\": \"text\", \"data\": \"",
-                "При подстановке вышеуказанных чисел получаем:\"}, ",
-                "{\"format\": \"code\", \"data\": \"",
-                "$(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))\"}, "
-            )
+            # global Main.reply_to_chat = string(
+            #     Main.reply_to_chat,
+            #     "{\"format\": \"text\", \"data\": \"",
+            #     "Переданный набор интерпретаций не доказывает завершаемость\"}, ",
+            #     "{\"format\": \"code\", \"data\": \"",
+            #     "$(term_to_string(pair[1])) -> $(term_to_string(pair[2]))\"}, ",
+            #     "{\"format\": \"code\", \"data\": \"",
+            #     "$var_string_to_chat\"}, ",
+            #     "{\"format\": \"text\", \"data\": \"",
+            #     "При подстановке вышеуказанных чисел получаем:\"}, ",
+            #     "{\"format\": \"code\", \"data\": \"",
+            #     "$(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))\"}, "
+            # )
+
+            text_reply("Переданный набор интерпретаций не доказывает завершаемость")
+            code_reply("$(term_to_string(pair[1])) -> $(term_to_string(pair[2]))")
+            code_reply("$var_string_to_chat")
+            text_reply("При подстановке вышеуказанных чисел получаем:")
+            code_reply("$(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))")
 
             return """
             Переданный набор интерпретаций не доказывает завершаемость $(term_to_string(pair[1])) -> $(term_to_string(pair[2]))
