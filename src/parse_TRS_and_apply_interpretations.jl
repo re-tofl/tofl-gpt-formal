@@ -1,26 +1,22 @@
-module Parser
-
 include("types.jl")
 
 using Symbolics
 using JSON
 
-export parse_and_interpret, separatevars, MissingJSONField, json_trs_to_string
-
 struct MissingJSONField <: Exception
-           filed
+           field
 end
 
 Base.showerror(io::IO, e::MissingJSONField) = print(io, "JSON поле $(e.field) не определено")
 
 ############################ Функция для применения интерпретаций
-function apply_interpretation(term, interpretations, var_map)::String
+function apply_interpretation(term, interpretations)::String
     if isempty(term.childs)
         # Если это переменная, возвращаем ее имя
         return term.name
     else
         # Применяем интерпретацию для функции
-        interpreted_childs = [apply_interpretation(child, interpretations, var_map) for child ∈ term.childs]
+        interpreted_childs = [apply_interpretation(child, interpretations) for child ∈ term.childs]
         if haskey(interpretations, term.name)
             interp_func = interpretations[term.name]
             # Вызываем функцию интерпретации с подставленными дочерними термами
@@ -32,79 +28,73 @@ function apply_interpretation(term, interpretations, var_map)::String
 end
 
 ########################### Функция для переименования переменных в TRS
-function renamevars!(jsonterm1, jsonterm2, renamefunc)
-    rename! = function (j)
-        if isempty(j["childs"])
-            j["value"] = renamefunc(j["value"])
+function renamevars!(term1, term2, renamefunc)
+    rename! = function (t)
+        if isempty(t.childs)
+            t.name = renamefunc(t.name)
         else
-            foreach(rename!, j["childs"])
+            foreach(rename!, t.childs)
         end
     end
 
-    foreach(rename!, (jsonterm1, jsonterm2))
+    foreach(rename!, (term1, term2))
 end
 
 """
 Разделяет переменные в каждом выражении, добавляя
-индекс. Возвращает json-строку 
+индекс
 """
-function separatevars(json_string)::String
-    json_exprs = JSON.parse(json_string)
-    for (index, expr) ∈ enumerate(json_exprs)
-        renamevars!(expr["left"], expr["right"], x -> "$(x)_$index")
+function separatevars!(term_pairs)
+    for (index, pair) ∈ enumerate(term_pairs)
+        renamevars!(pair[1], pair[2], x -> "$(x)_$index")
     end
-    JSON.json(json_exprs)
 end
 
+function collect_vars(term)
+    result = Set()
+    inner_collect_vars = (term) -> begin
+        if isempty(term.childs)
+            push!(result, term.name)
+        else
+            foreach(inner_collect_vars, term.childs)
+        end
+    end
+    inner_collect_vars(term)
+    result
+end
 
 """
 Возвращает вектор переменных и вектор полимномов, всё в виде строк
 """
-function parse_and_interpret(json_string, json_interpretations)
-    variables_array = Vector()
-    simplified_left_parts = Vector()
-
-    parsed_json = JSON.parse(json_string)
-
-    # Проверяем, что parsed_json является массивом правил
+function get_term_pairs_from_JSON(json_TRS_string)
+    parsed_json = JSON.parse(json_TRS_string)
+    term_pairs = Vector()
     if !isa(parsed_json, Array)
         throw(ArgumentError("ожидаетя массив JSON правил"))
     end
-
-    # Проходим по каждому правилу в массиве
     for rule ∈ parsed_json
-        # Проверяем, что правило содержит ключи "left" и "right"
         if !haskey(rule, "left")
             throw(MissingJSONField("left"))
         end
         if !haskey(rule, "right")
             throw(MissingJSONField("right"))
         end
-        # Парсим левую и правую части правила
         left_term = make_term_from_json(rule["left"])
         right_term = make_term_from_json(rule["right"])
+        push!(term_pairs, (left_term, right_term))
+    end
+    term_pairs
+end
 
-        # Создаём словарь var_map для сопоставления переменных из текущего правила
-        var_map = Dict{String, String}()
+function parse_and_interpret(term_pairs, interpretations)
+    variables_array = Vector()
+    simplified_left_parts = Vector()
+    for term_pair ∈ term_pairs
+        left_term = term_pair[1]
+        right_term = term_pair[2]
 
         # Собираем переменные из текущего правила
-        variable_names = Set{String}()
-        function collect_vars(term::Term)
-            if isempty(term.childs)
-                # Если терм — переменная, добавляем его имя в var_map и variable_names
-                var_map[term.name] = term.name
-                push!(variable_names, term.name)
-            else
-                # Терм — функция, обрабатываем её дочерние элементы
-                for child ∈ term.childs
-                    collect_vars(child)
-                end
-            end
-        end
-
-        # Собираем переменные из левой и правой частей
-        collect_vars(left_term)
-        collect_vars(right_term)
+        variable_names = collect_vars(left_term) ∪ collect_vars(right_term)
 
         # Динамически объявляем переменные
         variable_symbols = Symbol.(collect(variable_names))
@@ -112,32 +102,37 @@ function parse_and_interpret(json_string, json_interpretations)
 
         append!(variables_array, string.(variable_symbols))
 
-        interpretations = parse_interpretations(json_interpretations)
-
         # Применяем интерпретацию к левой и правой части текущего правила
-        interpreted_left = apply_interpretation(left_term, interpretations, var_map)
-        interpreted_right = apply_interpretation(right_term, interpretations, var_map)
+        interpreted_left = apply_interpretation(left_term, interpretations)
+        interpreted_right = apply_interpretation(right_term, interpretations)
 
         # Выводим правило TRSS
         left_term_str = term_to_string(left_term)
         right_term_str = term_to_string(right_term)
+
         println("\nПравило TRS:")
+
+        global json_reply_to_chat = string(
+            json_reply_to_chat,
+            "{\"format\": \"code\", \"data\": \"",
+            "$left_term_str -> $right_term_str\"}, "
+        )
+
         println("$left_term_str -> $right_term_str")
 
         # Упрощение интерпретаций
-        left_expr = interpreted_left |> Meta.parse |> eval |> Symbolics.simplify
-        right_expr = interpreted_right |> Meta.parse |> eval |> Symbolics.simplify
-
-        # Дополнительное упрощение с раскрытием скобок
-        left_expr_expanded = Symbolics.expand(left_expr)
-        right_expr_expanded = Symbolics.expand(right_expr)
+        left_expr_expanded, right_expr_expanded = (interpreted_left, interpreted_right) .|> 
+            Meta.parse .|> 
+            eval .|> 
+            Symbolics.simplify .|>
+            Symbolics.expand
 
         # Вычисляем разность и упрощаем
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        println("\nВыражение:")
-        println("$(left_expr_expanded) = $(right_expr_expanded)")
+        # println("Выражение:")
+        # println("$(left_expr_expanded) = $(right_expr_expanded)")
         println("После упрощения:")
         println("$(difference_expanded) = 0")
 
@@ -181,15 +176,15 @@ function make_term_from_json(json::Dict)
 end
 
 # Функция для отображения терма в человекочитаемом виде
-function term_to_string(term::Term)
-    if isempty(term.childs)
-        return term.name  # Если терм — переменная, возвращаем его имя
-    else
-        # Рекурсивно обрабатываем дочерние термы
-        child_strings = [term_to_string(child) for child ∈ term.childs]
-        return "$(term.name)(" * join(child_strings, ", ") * ")"
-    end
-end
+# function term_to_string(term::Term)
+#     if isempty(term.childs)
+#         return term.name  # Если терм — переменная, возвращаем его имя
+#     else
+#         # Рекурсивно обрабатываем дочерние термы
+#         child_strings = [term_to_string(child) for child ∈ term.childs]
+#         return "$(term.name)(" * join(child_strings, ", ") * ")"
+#     end
+# end
 
 
 """
@@ -223,10 +218,9 @@ function json_trs_to_string(json_string)
         right_term_str = term_to_string(right_term)
         rule_in_string = "$left_term_str -> $right_term_str"
         push!(all_rules_in_string, rule_in_string)
-        println("\nПравило TRS:")
-        println(rule_in_string)
+        # println("\nПравило TRS:")
+        # println(rule_in_string)
     end
 
     return all_rules_in_string
-end
 end
