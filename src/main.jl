@@ -17,7 +17,7 @@ include("solver_prepare.jl")
 
 const SMT_PATH = "tmp.smt"
 
-
+# Формат ответа в чат
 # {
 #     "result": [
 #         {"format": "code", "data": "..."},
@@ -25,7 +25,7 @@ const SMT_PATH = "tmp.smt"
 #     ]
 # }
 
-# Функция для обработки полученных данных
+### Функция для обработки полученных данных
 function process_data()
 
     if json_TRS_string ≡ nothing || json_interpret_string ≡ nothing

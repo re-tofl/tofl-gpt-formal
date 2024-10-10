@@ -8,7 +8,7 @@ using JSON
 function change_random_leaf(tree, new_leaf)
     leaves = []
 
-    # Вспомогательная рекурсивная функция для сбора листьев
+    ### Вспомогательная рекурсивная функция для сбора листьев
     function collect_leaves(node, parent, index)
         if isempty(node.childs)
             push!(leaves, (node, parent, index))

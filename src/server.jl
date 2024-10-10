@@ -3,11 +3,10 @@ using HTTP
 global json_TRS_string = nothing
 global json_interpret_string = nothing
 
-# Функция для обработки входящих запросов
 function request_handler(req)
     if req.method == "POST"
         path = String(req.target)
-        body = String(req.body)  # Получаем JSON-строку
+        body = String(req.body)
 
         if path == "/interpretations"
             global json_interpret_string = body
