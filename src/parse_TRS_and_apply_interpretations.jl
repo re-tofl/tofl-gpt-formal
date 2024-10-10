@@ -10,7 +10,7 @@ end
 
 Base.showerror(io::IO, e::MissingJSONField) = print(io, "JSON поле $(e.field) не определено")
 
-############################ Функция для применения интерпретаций
+### Функция для применения интерпретаций
 function apply_interpretation(term, interpretations)::String
     if isempty(term.childs)
         # Если это переменная, возвращаем ее имя
@@ -28,7 +28,7 @@ function apply_interpretation(term, interpretations)::String
     end
 end
 
-########################### Функция для переименования переменных в TRS
+### Функция для переименования переменных в TRS
 function renamevars!(term1, term2, renamefunc)
     rename! = function (t)
         if isempty(t.childs)
@@ -41,10 +41,7 @@ function renamevars!(term1, term2, renamefunc)
     foreach(rename!, (term1, term2))
 end
 
-"""
-Разделяет переменные в каждом выражении, добавляя
-индекс
-"""
+### Разделяет переменные в каждом выражении, добавляя индекс
 function separatevars!(term_pairs)
     for (index, pair) ∈ enumerate(term_pairs)
         renamevars!(pair[1], pair[2], x -> "$(x)_$index")
@@ -64,9 +61,7 @@ function collect_vars(term)
     result
 end
 
-"""
-Возвращает вектор переменных и вектор полимномов, всё в виде строк
-"""
+### Возвращает вектор переменных и вектор полимномов, всё в виде строк
 function get_term_pairs_from_JSON(json_TRS_string)
     parsed_json = JSON.parse(json_TRS_string)
     term_pairs = Vector()
@@ -170,9 +165,8 @@ function make_term_from_json(json::Dict)
 end
 
 
-"""
-Возвращает вектор строк правил TRS
-"""
+
+### Возвращает вектор строк правил TRS
 function json_trs_to_string(json_string)
     all_rules_in_string = Vector()
 

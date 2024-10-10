@@ -169,8 +169,7 @@ function construct_to_string(dict_constr)
         end
         result_string *= right_part * "\n"
     end
-    
-    #return strip(result_string, '\n')
+
     result_string
 end
 

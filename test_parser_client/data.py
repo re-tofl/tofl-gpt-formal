@@ -1,5 +1,12 @@
 # Сначала идут 4 TRS и их интерпретации: 1 из головы; 2, 3 и 4 с семинара.
 #
+# Первая TRS: f(x, h(y)) -> h(f(x, y))
+#             g(u(x)) -> h(x)
+# Интерпретации: f(x, y) = x^2 + 2 * y
+#                g(y) = y + 1
+#                h(x) = x + 1
+#                u(t) = t + 12
+#
 # Вторая TRS: f(x, S(y)) -> S(f(x, y))
 #             f(x, z) -> x
 #             g(x, S(y)) -> f(g(x, y), x)
@@ -17,7 +24,11 @@
 # которые не доказывают завершаемость: S(x) = x + 1
 #                                      f(x, y) = x + y
 #
-# Затем идут первые 3 TRS (3 и 4 совпадают), но с пустыми интерпретациями
+# Пятая TRS: f(x, h(x)) -> h(f(x, y))
+# Интерпретации: f(x, y) = x^2 + 2 * y
+#                h(x) = x + 1
+#
+# Затем идут первые 3 TRS и пятая TRS (3 и 4 совпадают), но с пустыми интерпретациями
 # Такой лютый хардкод из-за того, что парсер ещё не готов
 
 interpret_list = [{
@@ -87,7 +98,20 @@ interpret_list = [{
             "expression": "(x + 1)"
         }
     ]
-}, {}, {}, {}]
+}, {
+    "functions": [
+        {
+            "name": "f",
+            "variables": ["x", "y"],
+            "expression": "(x^2 + 2 * y)"
+        },
+        {
+            "name": "h",
+            "variables": ["x"],
+            "expression": "(x + 1)"
+        }
+    ]
+}, {}, {}, {}, {}]
 
 trs_list = [[
     {
@@ -401,6 +425,45 @@ trs_list = [[
                     "value": "h",
                     "childs": [
                         {
+                            "value": "x",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "right": {
+            "value": "h",
+            "childs": [
+                {
+                    "value": "f",
+                    "childs": [
+                        {
+                            "value": "x",
+                            "childs": []
+                        },
+                        {
+                            "value": "y",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+], [
+    {
+        "left": {
+            "value": "f",
+            "childs": [
+                {
+                    "value": "x",
+                    "childs": []
+                },
+                {
+                    "value": "h",
+                    "childs": [
+                        {
                             "value": "y",
                             "childs": []
                         }
@@ -627,6 +690,45 @@ trs_list = [[
         "right": {
             "value": "x",
             "childs": []
+        }
+    }
+], [
+    {
+        "left": {
+            "value": "f",
+            "childs": [
+                {
+                    "value": "x",
+                    "childs": []
+                },
+                {
+                    "value": "h",
+                    "childs": [
+                        {
+                            "value": "x",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "right": {
+            "value": "h",
+            "childs": [
+                {
+                    "value": "f",
+                    "childs": [
+                        {
+                            "value": "x",
+                            "childs": []
+                        },
+                        {
+                            "value": "y",
+                            "childs": []
+                        }
+                    ]
+                }
+            ]
         }
     }
 ]]
