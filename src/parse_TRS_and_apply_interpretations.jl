@@ -128,8 +128,8 @@ function parse_and_interpret(term_pairs, interpretations)
         difference = Symbolics.simplify(left_expr_expanded - right_expr_expanded)
         difference_expanded = Symbolics.expand(difference)
 
-        println("После упрощения:")
-        println("$(difference_expanded) = 0")
+        println("\nПосле подстановки интерпретаций и упрощения:")
+        println("$(difference_expanded) -> 0")
 
         # Сохраняем левую часть выражения
         push!(simplified_left_parts, string(difference_expanded))

@@ -1,8 +1,7 @@
 using JSON
 using Symbolics
 
-const default_reply = Dict("result" => [])
-global reply_to_chat = default_reply
+global reply_to_chat = Dict("result" => [])
 
 
 include("reply_func.jl")
@@ -45,17 +44,17 @@ function process_data()
 
         is_sat, interpretations = write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
         if is_sat
-            text_reply("Правила TRS:")
+            text_reply("\nПравила TRS:")
 
             variables_array, simplified_left_parts = parse_and_interpret(
                 term_pairs, interpretations,
             )
-            text_reply("Правила TRS после упрощения:")
+            text_reply("\nПравила TRS после подстановки интерпретаций и упрощения:")
 
             for part ∈ simplified_left_parts
                 code_reply("$part -> 0")
             end
-            text_reply("Демонстрация на случайном терме:")
+            text_reply("\nДемонстрация на случайном терме:")
 
             println(get_demo(term_pairs, interpretations))
         end
@@ -66,14 +65,14 @@ function process_data()
         interpretations = parse_interpretations(json_interpret_string)
         display_interpretations()
 
-        text_reply("Правила TRS:")
+        text_reply("\nПравила TRS:")
         
         # Обрабатываем TRS
         variables_array, simplified_left_parts = parse_and_interpret(
             term_pairs, interpretations,
         )
 
-        text_reply("Правила TRS после упрощения:")
+        text_reply("\nПравила TRS после подстановки интерпретаций и упрощения:")
 
         for part ∈ simplified_left_parts
             code_reply("$part -> 0")
@@ -85,6 +84,7 @@ function process_data()
         if status == Unknown
             println("TRS попроще сделай")
         elseif status == Unsat
+            text_reply("\nДемонстрация на случайном терме:")
             println(get_demo(term_pairs, interpretations))
         elseif status == Sat
             println(get_counterexample(term_pairs, interpretations, counterexample_vars))
@@ -99,7 +99,7 @@ function process_data()
     # HTTP.post("https://ivanpavlov2281337.ru/formal_system_reply", [], JSON.json(reply_to_chat))
 
     # Обнуление для следующего запроса
-    global reply_to_chat = default_reply
+    global reply_to_chat = Dict("result" => [])
 
     global json_TRS_string = nothing
     global json_interpret_string = nothing

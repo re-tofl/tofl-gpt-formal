@@ -156,21 +156,21 @@ function get_demo(term_pairs, interpretations)
     before = build_example_term(term_pairs)
     after = rewrite_term(before, term_pairs)
 
-    text_reply("Терм до переписывания:")
+    text_reply("Случайный терм до переписывания:")
     code_reply("$(term_to_string(before))")
     text_reply("Терм после переписывания:")
     code_reply("$(term_to_string(after))")
 
-    res *= "Терм до переписывания: $(term_to_string(before))\n"
+    res *= "\nСлучайный терм до переписывания: $(term_to_string(before))\n"
     res *= "Терм после переписывания: $(term_to_string(after))\n"
     vars = collect_vars(before)
 
     before = apply_interpretation(before, interpretations)
     after = apply_interpretation(after, interpretations)
 
-    text_reply("Значения переменных:")
+    text_reply("Случайные значения переменных:")
 
-    res *= "Значения переменных:\n"
+    res *= "Случайные значения переменных:\n"
     for v ∈ vars 
         value = string(rand(1:10))
 
@@ -206,15 +206,13 @@ function get_counterexample(term_pairs, interpretations, var_map)
         if eval(Meta.parse("$left <= $right"))
             variables = collect_vars(pair[1]) ∪ collect_vars(pair[2])
             var_string = ""
-            var_string_to_chat = ""
             for v ∈ variables
                 var_string *= "$v = $(var_map[v])\n"
-                var_string_to_chat *= "$v = $(var_map[v])\\n"
             end
 
-            text_reply("Переданный набор интерпретаций не доказывает завершаемость")
+            text_reply("\nПереданный набор интерпретаций не доказывает завершаемость")
             code_reply("$(term_to_string(pair[1])) -> $(term_to_string(pair[2]))")
-            code_reply("$var_string_to_chat")
+            code_reply("$var_string")
             text_reply("При подстановке вышеуказанных чисел получаем:")
             code_reply("$(eval(Meta.parse(left))) -> $(eval(Meta.parse(right)))")
 

@@ -4,7 +4,7 @@ using JSON
 
 function display_interpretations()
     parsed_data = JSON.parse(json_interpret_string)
-    println("Исходные интерпретации:")
+    println("\nИсходные интерпретации:")
     for func ∈ parsed_data["functions"]
         func_name = func["name"]
         variables = func["variables"]
