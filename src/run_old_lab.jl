@@ -1,5 +1,7 @@
 module OldLabRunner
 
+include("reply_func.jl")
+
 using Base.Sys
 using Symbolics
     
@@ -63,12 +65,7 @@ function interact_with_program(path)
             read(io, String)
         end
     catch
-
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Лаба Вячеслава сломалась :( \\nПопробуйте другие TRS или добавьте интерпретации\"}, "
-        )
+        text_reply("Лаба Вячеслава сломалась :( Попробуйте другие TRS или добавьте интерпретации")
 
         print("Лаба Вячеслава сломалась :( \nПопробуйте другие TRS или добавьте интерпретации\n")
         return true, output
@@ -154,7 +151,7 @@ function add_monom(result_string_part, var, coef)
 end
 
 ### Для вывода интерпретаций
-function construct_to_string(dict_constr, for_chat)
+function construct_to_string(dict_constr)
     result_string = ""
     for (name, attr) ∈ dict_constr
         result_string *= name * "("
@@ -170,11 +167,7 @@ function construct_to_string(dict_constr, for_chat)
                 right_part = add_monom(right_part, "x"*"$(i-2)", attr[i])
             end
         end
-        if for_chat
-            result_string *= right_part * "\\n"
-        else
-            result_string *= right_part * "\n"
-        end
+        result_string *= right_part * "\n"
     end
     
     #return strip(result_string, '\n')
@@ -228,11 +221,7 @@ function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=nam
 
     if length(split(output, "команды:\n")[end]) < 3
 
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Проверьте наличие z3\"}, "
-        )
+        text_reply("Проверьте наличие z3")
 
         println("Проверьте наличие z3")
         return false, false
@@ -240,25 +229,13 @@ function write_trs_and_run_lab(trs_vector_of_strings, name_folder, name_file=nam
     
     is_sat, constructors = parse_output(output)
     if is_sat
-
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Есть линейная интерпретация, показывающая завершаемость TRS\\n\"}, ",
-            "{\"format\": \"code\", \"data\": \"",
-            construct_to_string(constructors, true),
-            "\\n\"}, "
-        )
+        text_reply("\nЕсть линейная интерпретация, показывающая завершаемость TRS")
+        code_reply("$(construct_to_string(constructors))")
 
         println("Есть линейная интерпретация, показывающая завершаемость TRS")
-        println(construct_to_string(constructors, false))
+        println(construct_to_string(constructors))
     else
-
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"text\", \"data\": \"",
-            "Линейными интерпретациями не удается доказать завершаемость TRS\\n\"}, "
-        )
+        text_reply("Линейными интерпретациями не удается доказать завершаемость TRS")
 
         println("Линейными интерпретациями не удается доказать завершаемость TRS")
     end

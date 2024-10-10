@@ -1,3 +1,5 @@
+include("reply_func.jl")
+
 using JSON
 
 function display_interpretations()
@@ -8,12 +10,8 @@ function display_interpretations()
         variables = func["variables"]
         expression = func["expression"]
         vars_str = join(variables, ", ")
-
-        global Main.json_reply_to_chat = string(
-            Main.json_reply_to_chat,
-            "{\"format\": \"code\", \"data\": \"",
-            "$func_name($vars_str) = $expression\"}, "
-        )
+        
+        code_reply("$func_name($vars_str) = $expression")
 
         println("$func_name($vars_str) = $expression")
     end
