@@ -1,11 +1,11 @@
 using JSON
 using Symbolics
 
-const default_reply = []
+const default_reply = Dict("result" => [])
 global reply_to_chat = default_reply
 
 
-include("reply_macros.jl")
+include("reply_func.jl")
 include("term_generator.jl")
 include("types.jl")
 

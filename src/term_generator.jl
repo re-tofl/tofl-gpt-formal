@@ -1,5 +1,5 @@
 include("types.jl")
-include("reply_macros.jl")
+include("reply_func.jl")
 include("parse_TRS_and_apply_interpretations.jl")
 
 using Random

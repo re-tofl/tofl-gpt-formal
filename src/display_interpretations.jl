@@ -1,4 +1,4 @@
-include("reply_macros.jl")
+include("reply_func.jl")
 
 using JSON
 
