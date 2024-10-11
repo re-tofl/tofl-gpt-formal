@@ -2,7 +2,10 @@ using JSON
 using Symbolics
 
 global reply_to_chat = Dict("result" => [])
-
+# Глобальные переменные для хранения полученных JSON-строк
+global json_TRS_string = nothing
+global json_interpret_string = nothing
+include("input_parse.jl")
 
 include("reply_func.jl")
 include("term_generator.jl")
@@ -12,18 +15,9 @@ include("run_old_lab.jl")
 using .OldLabRunner
 
 include("display_interpretations.jl")
-include("server.jl")
 include("solver_prepare.jl")
 
 const SMT_PATH = "tmp.smt"
-
-# Формат ответа в чат
-# {
-#     "result": [
-#         {"format": "code", "data": "..."},
-#         {"format": "text", "data": "..."}
-#     ]
-# }
 
 ### Функция для обработки полученных данных
 function process_data()
@@ -54,7 +48,7 @@ function process_data()
             for part ∈ simplified_left_parts
                 code_reply("$part -> 0")
             end
-            text_reply("\nДемонстрация на случайном терме:")
+            text_reply("\nЗавершаемость доказывается интерпретациями из лабы прошлого года. Демонстрация на случайном терме:")
 
             println(get_demo(term_pairs, interpretations))
         end
@@ -84,7 +78,7 @@ function process_data()
         if status == Unknown
             println("TRS попроще сделай")
         elseif status == Unsat
-            text_reply("\nДемонстрация на случайном терме:")
+            text_reply("\nЗавершаемость доказывается переданными интерпретациями. Демонстрация на случайном терме:")
             println(get_demo(term_pairs, interpretations))
         elseif status == Sat
             println(get_counterexample(term_pairs, interpretations, counterexample_vars))
@@ -93,7 +87,7 @@ function process_data()
         end
     end
 
-    println(JSON.json(reply_to_chat))
+    #println(JSON.json(reply_to_chat))
 
     # Наш ответ в чат
     # HTTP.post("https://ivanpavlov2281337.ru/formal_system_reply", [], JSON.json(reply_to_chat))
@@ -105,12 +99,24 @@ function process_data()
     global json_interpret_string = nothing
 end
 
-port = 8081
-@async begin
-    HTTP.serve(request_handler, "0.0.0.0", port)
-end
-
 while true
+    @info "Введите TRS (закончите пустой строкой):"
+    TRS_string = read_input("TRS:")
+    println("TRS введено.")
+
+    @info "Введите интерпретации (закончите пустой строкой):"
+    interpret_string = read_input("Интерпретации:")
+    println("Интерпретации введены.")
+
+    global json_TRS_string = parse_trs_string_demo(TRS_string)
+
+    if interpret_string == "\n"
+        global json_interpret_string = "{}"
+    else
+        global json_interpret_string = parse_interpret_string_demo(interpret_string)
+    end
+
+    #println(json_TRS_string, json_interpret_string)
+
     process_data()
-    sleep(1)
 end
