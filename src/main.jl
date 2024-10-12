@@ -33,15 +33,18 @@ function process_data()
         return
     end
 
-    term_pairs = get_term_pairs_from_JSON(json_TRS_string)
-    separatevars!(term_pairs)
-
-    # Если интерпретации предоставлены, но пустые
+    # Проверяем, предоставлены ли интерпретации
     if json_interpret_string == "{}"
         text_reply("Интерпретации не переданы и, в случае успеха, будут взяты из прошлогодней лабы")
 
         @info "Интерпретации пусты. Запуск прошлогодней лабы"
 
+        function_symbols = nothing  # Нет информации о функциях из интерпретаций
+        # Разбираем TRS без учёта интерпретаций
+        term_pairs = get_term_pairs_from_JSON(json_TRS_string, function_symbols)
+        separatevars!(term_pairs)
+
+        # Продолжаем с использованием прошлогодней лабораторной работы
         is_sat, interpretations = write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
         if is_sat
             text_reply("\nПравила TRS:")
@@ -54,19 +57,26 @@ function process_data()
             for part ∈ simplified_left_parts
                 code_reply("$part -> 0")
             end
-            text_reply("\nДемонстрация на случайном терме:")
+            text_reply("\nЗавершаемость доказывается интерпретациями из лабы прошлого года. Демонстрация на случайном терме:")
 
             println(get_demo(term_pairs, interpretations))
         end
 
     else
+        # Интерпретации предоставлены
+        interpretations = parse_interpretations(json_interpret_string)
+        function_symbols = Set(keys(interpretations))  # Собираем имена функций
+
+        # Разбираем TRS с учётом function_symbols
+        term_pairs = get_term_pairs_from_JSON(json_TRS_string, function_symbols)
+        separatevars!(term_pairs)
+
         text_reply("Интерпретации переданы. Исходные интерпретации:")
 
-        interpretations = parse_interpretations(json_interpret_string)
         display_interpretations()
 
         text_reply("\nПравила TRS:")
-        
+
         # Обрабатываем TRS
         variables_array, simplified_left_parts = parse_and_interpret(
             term_pairs, interpretations,
@@ -84,7 +94,7 @@ function process_data()
         if status == Unknown
             println("TRS попроще сделай")
         elseif status == Unsat
-            text_reply("\nДемонстрация на случайном терме:")
+            text_reply("\nЗавершаемость доказывается переданными интерпретациями. Демонстрация на случайном терме:")
             println(get_demo(term_pairs, interpretations))
         elseif status == Sat
             println(get_counterexample(term_pairs, interpretations, counterexample_vars))
@@ -93,7 +103,7 @@ function process_data()
         end
     end
 
-    println(JSON.json(reply_to_chat))
+    #println(JSON.json(reply_to_chat))
 
     # Наш ответ в чат
     # HTTP.post("https://ivanpavlov2281337.ru/formal_system_reply", [], JSON.json(reply_to_chat))

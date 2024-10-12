@@ -6,19 +6,23 @@ function make_smt_file(path, variables_array, simplified_left_parts)
 
     add2solver = s -> solver_text *= s * "\n"
 
-    for v ∈ variables_array
-        add2solver("(declare-const $v Int)")
-    end
+    # Добавляем объявления переменных только если они есть
+    if !isempty(variables_array)
+        for v ∈ variables_array
+            add2solver("(declare-const $v Int)")
+        end
 
-    for v ∈ variables_array
-        add2solver("(assert (>= $v 1))")
-    end
+        for v ∈ variables_array
+            add2solver("(assert (>= $v 1))")
+        end
 
-    variable_symbols = Symbol.(collect(variables_array))
-    @eval @variables $(variable_symbols...)
+        # Объявляем переменные для использования в Julia
+        variable_symbols = Symbol.(variables_array)
+        @eval @variables $(variable_symbols...)
+    end
 
     add2solver("(assert (or")
-    for left_part ∈ simplified_left_parts 
+    for left_part ∈ simplified_left_parts
         expr = Meta.parse(left_part)
         add2solver("(<= $(infix_to_prefix(expr)) 0)")
     end
@@ -29,6 +33,7 @@ function make_smt_file(path, variables_array, simplified_left_parts)
         write(file, solver_text)
     end
 end
+
 
 
 @enum SolverStatus begin
