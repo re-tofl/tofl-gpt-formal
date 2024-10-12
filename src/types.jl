@@ -1,7 +1,7 @@
 mutable struct Term
     name::String
     childs::Vector{Term}
-    is_empty::Bool
+    is_variable::Bool
 end
 
 function term_to_string(term)
