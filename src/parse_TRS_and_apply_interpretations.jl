@@ -27,7 +27,6 @@ function apply_interpretation(term, interpretations)::String
     end
 end
 
-
 ### Функция для переименования переменных в TRS
 function renamevars!(term1, term2, renamefunc)
     rename! = function (t)
@@ -39,7 +38,6 @@ function renamevars!(term1, term2, renamefunc)
     foreach(rename!, (term1, term2))
 end
 
-
 ### Разделяет переменные в каждом выражении, добавляя индекс
 function separatevars!(term_pairs)
     for (index, pair) ∈ enumerate(term_pairs)
@@ -50,7 +48,7 @@ end
 function collect_vars(term)
     result = Set()
     inner_collect_vars = (term) -> begin
-        if isempty(term.childs)
+        if isempty(term.childs) && term.is_variable
             push!(result, term.name)
         else
             foreach(inner_collect_vars, term.childs)
@@ -60,13 +58,12 @@ function collect_vars(term)
     result
 end
 
-
-### Возвращает вектор переменных и вектор полимномов, всё в виде строк
-function get_term_pairs_from_JSON(json_TRS_string)
+### Возвращает вектор переменных и вектор полиномов, всё в виде строк
+function get_term_pairs_from_JSON(json_TRS_string, function_symbols)
     parsed_json = JSON.parse(json_TRS_string)
     term_pairs = Vector()
     if !isa(parsed_json, Array)
-        throw(ArgumentError("ожидаетя массив JSON правил"))
+        throw(ArgumentError("ожидается массив JSON правил"))
     end
     for rule ∈ parsed_json
         if !haskey(rule, "left")
@@ -75,13 +72,12 @@ function get_term_pairs_from_JSON(json_TRS_string)
         if !haskey(rule, "right")
             throw(MissingJSONField("right"))
         end
-        left_term = make_term_from_json(rule["left"])
-        right_term = make_term_from_json(rule["right"])
+        left_term = make_term_from_json(rule["left"], function_symbols)
+        right_term = make_term_from_json(rule["right"], function_symbols)
         push!(term_pairs, (left_term, right_term))
     end
     term_pairs
 end
-
 
 function parse_and_interpret(term_pairs, interpretations)
     variables_array = Vector()
@@ -93,17 +89,18 @@ function parse_and_interpret(term_pairs, interpretations)
         # Собираем переменные из текущего правила
         variable_names = collect_vars(left_term) ∪ collect_vars(right_term)
 
-        # Динамически объявляем переменные
+        # Динамически объявляем переменные, если они есть
         variable_symbols = Symbol.(collect(variable_names))
-        @eval @variables $(variable_symbols...)
-
-        append!(variables_array, string.(variable_symbols))
+        if !isempty(variable_symbols)
+            @eval @variables $(variable_symbols...)
+            append!(variables_array, string.(variable_symbols))
+        end
 
         # Применяем интерпретацию к левой и правой части текущего правила
         interpreted_left = apply_interpretation(left_term, interpretations)
         interpreted_right = apply_interpretation(right_term, interpretations)
 
-        # Выводим правило TRSS
+        # Выводим правило TRS
         left_term_str = term_to_string(left_term)
         right_term_str = term_to_string(right_term)
 
@@ -114,9 +111,9 @@ function parse_and_interpret(term_pairs, interpretations)
         println("$left_term_str -> $right_term_str")
 
         # Упрощение интерпретаций
-        left_expr_expanded, right_expr_expanded = (interpreted_left, interpreted_right) .|> 
-            Meta.parse .|> 
-            eval .|> 
+        left_expr_expanded, right_expr_expanded = (interpreted_left, interpreted_right) .|>
+            Meta.parse .|>
+            eval .|>
             Symbolics.simplify .|>
             Symbolics.expand
 
@@ -160,13 +157,22 @@ function parse_interpretations(json_interpret_string)
     interpretations
 end
 
+function make_term_from_json(json::Dict, function_symbols)
+    childs = [make_term_from_json(child, function_symbols) for child ∈ json["childs"]]
 
-function make_term_from_json(json::Dict)
-    childs = [make_term_from_json(child) for child ∈ json["childs"]]
-    is_variable = haskey(json, "is_variable") ? json["is_variable"] : isempty(childs)
+    if function_symbols ≡ nothing
+        # Если интерпретации не предоставлены
+        is_variable = isempty(childs)
+    else
+        # Определяем is_variable на основе function_symbols и наличия дочерних термов
+        if length(childs) > 0 || in(json["value"], function_symbols)
+            is_variable = false  # Это функция
+        else
+            is_variable = true   # Это переменная
+        end
+    end
     return Term(json["value"], childs, is_variable)
 end
-
 
 ### Возвращает вектор строк правил TRS
 function json_trs_to_string(json_string)
@@ -189,8 +195,8 @@ function json_trs_to_string(json_string)
             throw(MissingJSONField("right"))
         end
         # Парсим левую и правую части правила
-        left_term = make_term_from_json(rule["left"])
-        right_term = make_term_from_json(rule["right"])
+        left_term = make_term_from_json(rule["left"], nothing)  # Передаём nothing, т.к. это для лабы
+        right_term = make_term_from_json(rule["right"], nothing)
 
         # Выводим правило TRS
         left_term_str = term_to_string(left_term)

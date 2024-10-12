@@ -1,7 +1,7 @@
 function read_input(prompt)
     input = ""
     result = ""
-    
+
     println(prompt)
     while true
         line = readline()
@@ -10,14 +10,12 @@ function read_input(prompt)
         if isempty(line)
             break
         end
-
     end
 
     return result
 end
 
 using JSON
-
 
 # Функция для парсинга TRS строки
 function parse_trs_string_demo(trs_string::String)
@@ -34,7 +32,6 @@ function parse_trs_string_demo(trs_string::String)
     return JSON.json(trs_json)
 end
 
-
 # Рекурсивная функция для парсинга выражения
 function parse_expression_demo(expr::String)
     expr = strip(expr)
@@ -42,13 +39,12 @@ function parse_expression_demo(expr::String)
         func_name, args = match(r"(\w+)\((.*)\)", expr).captures
         args = split_args_demo(String(args))
         child_trees = [parse_expression_demo(String(arg)) for arg in args]
-        return Dict("value" => func_name, "childs" => child_trees, "is_variable" => false)
+        return Dict("value" => func_name, "childs" => child_trees)
     else
-        # Базовый случай - это переменная
-        return Dict("value" => expr, "childs" => [], "is_variable" => true)
+        # Базовый случай - это переменная или функция без аргументов
+        return Dict("value" => expr, "childs" => [])
     end
 end
-
 
 # Функция для разбивки аргументов по запятым
 function split_args_demo(args::String)
@@ -77,7 +73,6 @@ function split_args_demo(args::String)
     return result
 end
 
-
 # Функция для парсинга строки интерпретаций
 function parse_interpret_string_demo(interpret_string::String)
     interpretations = split(interpret_string, '\n') |> filter(!isempty)
@@ -98,4 +93,3 @@ function parse_interpret_string_demo(interpret_string::String)
 
     return JSON.json(Dict("functions" => functions))
 end
-

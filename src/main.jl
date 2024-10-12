@@ -27,15 +27,18 @@ function process_data()
         return
     end
 
-    term_pairs = get_term_pairs_from_JSON(json_TRS_string)
-    separatevars!(term_pairs)
-
-    # Если интерпретации предоставлены, но пустые
+    # Проверяем, предоставлены ли интерпретации
     if json_interpret_string == "{}"
         text_reply("Интерпретации не переданы и, в случае успеха, будут взяты из прошлогодней лабы")
 
         @info "Интерпретации пусты. Запуск прошлогодней лабы"
 
+        function_symbols = nothing  # Нет информации о функциях из интерпретаций
+        # Разбираем TRS без учёта интерпретаций
+        term_pairs = get_term_pairs_from_JSON(json_TRS_string, function_symbols)
+        separatevars!(term_pairs)
+
+        # Продолжаем с использованием прошлогодней лабораторной работы
         is_sat, interpretations = write_trs_and_run_lab(json_trs_to_string(json_TRS_string), "lab1")
         if is_sat
             text_reply("\nПравила TRS:")
@@ -54,13 +57,20 @@ function process_data()
         end
 
     else
+        # Интерпретации предоставлены
+        interpretations = parse_interpretations(json_interpret_string)
+        function_symbols = Set(keys(interpretations))  # Собираем имена функций
+
+        # Разбираем TRS с учётом function_symbols
+        term_pairs = get_term_pairs_from_JSON(json_TRS_string, function_symbols)
+        separatevars!(term_pairs)
+
         text_reply("Интерпретации переданы. Исходные интерпретации:")
 
-        interpretations = parse_interpretations(json_interpret_string)
         display_interpretations()
 
         text_reply("\nПравила TRS:")
-        
+
         # Обрабатываем TRS
         variables_array, simplified_left_parts = parse_and_interpret(
             term_pairs, interpretations,
@@ -116,7 +126,8 @@ while true
         global json_interpret_string = parse_interpret_string_demo(interpret_string)
     end
 
-    #println(json_TRS_string, json_interpret_string)
+    #println(json_TRS_string)
+    #println(json_interpret_string)
 
     process_data()
 end

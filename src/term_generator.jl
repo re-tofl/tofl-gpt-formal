@@ -82,7 +82,7 @@ end
 function build_example_term(term_pairs)
     rewriting_count = min(length(term_pairs)*2, 10)
     random_left_part = () -> deepcopy(rand(term_pairs)[1])
-    root = Term("x", Vector())
+    root = Term("x", Vector(), true)
     for _ = 1:rewriting_count
         change_random_leaf(root, random_left_part())
     end
@@ -116,7 +116,11 @@ function rewrite_term(term, term_pairs)
         if isempty(inner_term.childs)
             var_map[inner_term.name]
         else
-            Term(inner_term.name, map(x -> rename_leaves(x, var_map), inner_term.childs))
+            Term(inner_term.name, map(
+                x -> rename_leaves(x, var_map),
+                inner_term.childs),
+                inner_term.is_variable
+            )
         end
     end
     
@@ -144,10 +148,11 @@ function rewrite_term(term, term_pairs)
         rewrite_term(term, term_pairs)
     else
         if !isempty(term.childs)
-            Term(term.name, map(x -> rewrite_term(x, term_pairs), term.childs))
+            Term(term.name, map(x -> rewrite_term(x, term_pairs), term.childs), term.is_variable)
         else
-            Term(term.name, [])
+            Term(term.name, [], term.is_variable)
         end
+
     end
 end
 
