@@ -2,47 +2,45 @@ import requests
 import json
 
 # URL для локального сервера
-url_interpretations = 'http://localhost:8081/interpretations'
-url_trs = 'http://localhost:8081/trs'
+url_data= 'http://localhost:8081/data'
 
-# Первый JSON с данными интерпретаций
-interpretations_data = {
-    "functions": [
+data = {
+    "json_TRS": [
         {
-            "name": "f",
-            "variables": ["x", "y"],
-            "expression": "(x * y)"
-        },
-        {
-            "name": "k",
-            "variables": [],
-            "expression": "(5)"
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "y",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "k",
+                "childs": []
+            }
         }
-    ]
-}
-
-# Второй JSON с данными TRS
-trs_data = [
-    {
-        "left": {
-            "value": "f",
-            "childs": [
-                {
-                    "value": "x",
-                    "childs": []
-                },
-                {
-                    "value": "y",
-                    "childs": []
-                }
-            ]
-        },
-        "right": {
-            "value": "k",
-            "childs": []
-        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x * y)"
+            },
+            {
+                "name": "k",
+                "variables": [],
+                "expression": "(5)"
+            }
+        ]
     }
-]
+}
 
 trs_data2 = [
     {
@@ -165,12 +163,8 @@ trs_data2 = [
     }
 ]
 
-# Отправка первого JSON на сервер
-response_interpretations = requests.post(url_interpretations, json=interpretations_data)
+# Отправка JSON на сервер
+response_interpretations = requests.post(url_data, json=data)
 print(f"Interpretations status: {response_interpretations.status_code}")
 print(f"Interpretations response: {response_interpretations.text}")
 
-# Отправка второго JSON на сервер
-response_trs = requests.post(url_trs, json=trs_data)
-print(f"TRS status: {response_trs.status_code}")
-print(f"TRS response: {response_trs.text}")

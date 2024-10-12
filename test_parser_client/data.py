@@ -28,8 +28,772 @@
 # Интерпретации: f(x, y) = x^2 + 2 * y
 #                h(x) = x + 1
 #
+# В десятом элементе списка запросов
 # Затем идут первые 3 TRS и пятая TRS (3 и 4 совпадают), но с пустыми интерпретациями
 # Такой лютый хардкод из-за того, что взаимодействие с парсером ещё не готово
+
+data_list = [{
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "h",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "h",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "g",
+                "childs": [
+                    {
+                        "value": "u",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "h",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    }
+                ]
+            }
+        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x^2 + 2 * y)"
+            },
+            {
+                "name": "g",
+                "variables": ["y"],
+                "expression": "(y + 1)"
+            },
+            {
+                "name": "h",
+                "variables": ["x"],
+                "expression": "(x + 1)"
+            },
+            {
+                "name": "u",
+                "variables": ["t"],
+                "expression": "(t + 12)"
+            }
+        ]
+    }
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "S",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "x",
+                "childs": []
+            }
+        },
+        {
+            "left": {
+                "value": "g",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "g",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    },
+                    {
+                        "value": "x",
+                        "childs": []
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "g",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "z",
+                "childs": []
+            }
+        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "S",
+                "variables": ["x"],
+                "expression": "(x + 1)"
+            },
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x + 2 * y)"
+            },
+            {
+                "name": "g",
+                "variables": ["x", "y"],
+                "expression": "(3 * x * y)"
+            }
+        ]
+    }
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "S",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "x",
+                "childs": []
+            }
+        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x + 2 * y)"
+            },
+            {
+                "name": "S",
+                "variables": ["x"],
+                "expression": "(x + 1)"
+            }
+        ]
+    }
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "S",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "x",
+                "childs": []
+            }
+        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x + y)"
+            },
+            {
+                "name": "S",
+                "variables": ["x"],
+                "expression": "(x + 1)"
+            }
+        ]
+    }
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "h",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "h",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x^2 + 2 * y)"
+            },
+            {
+                "name": "h",
+                "variables": ["x"],
+                "expression": "(x + 1)"
+            }
+        ]
+    }
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "h",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "h",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "g",
+                "childs": [
+                    {
+                        "value": "u",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "h",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    }
+                ]
+            }
+        }
+    ],
+    "json_interpret": {}
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "S",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "x",
+                "childs": []
+            }
+        },
+        {
+            "left": {
+                "value": "g",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "g",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    },
+                    {
+                        "value": "x",
+                        "childs": []
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "g",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "z",
+                "childs": []
+            }
+        }
+    ],
+    "json_interpret": {}
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "S",
+                        "childs": [
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "S",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "z",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "x",
+                "childs": []
+            }
+        }
+    ],
+    "json_interpret": {}
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "h",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            "right": {
+                "value": "h",
+                "childs": [
+                    {
+                        "value": "f",
+                        "childs": [
+                            {
+                                "value": "x",
+                                "childs": []
+                            },
+                            {
+                                "value": "y",
+                                "childs": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "json_interpret": {}
+}, {
+    "json_TRS": [
+        {
+            "left": {
+                "value": "f",
+                "childs": [
+                    {
+                        "value": "x",
+                        "childs": []
+                    },
+                    {
+                        "value": "y",
+                        "childs": []
+                    }
+                ]
+            },
+            "right": {
+                "value": "k",
+                "childs": []
+            }
+        }
+    ],
+    "json_interpret": {
+        "functions": [
+            {
+                "name": "f",
+                "variables": ["x", "y"],
+                "expression": "(x * y)"
+            },
+            {
+                "name": "k",
+                "variables": [],
+                "expression": "(5)"
+            }
+        ]
+    }
+}]
 
 interpret_list = [{
   "functions": [
