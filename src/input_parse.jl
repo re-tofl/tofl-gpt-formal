@@ -18,6 +18,7 @@ end
 
 using JSON
 
+
 # Функция для парсинга TRS строки
 function parse_trs_string_demo(trs_string::String)
     rules = split(trs_string, '\n') |> filter(!isempty)
@@ -35,20 +36,19 @@ end
 
 
 # Рекурсивная функция для парсинга выражения
-# Рекурсивная функция для парсинга выражения
 function parse_expression_demo(expr::String)
     expr = strip(expr)
-    # Если выражение имеет формат f(...) - рекурсивный случай
     if occursin('(', expr)
         func_name, args = match(r"(\w+)\((.*)\)", expr).captures
         args = split_args_demo(String(args))
         child_trees = [parse_expression_demo(String(arg)) for arg in args]
-        return Dict("value" => func_name, "childs" => child_trees)
+        return Dict("value" => func_name, "childs" => child_trees, "is_variable" => false)
     else
-        # Базовый случай - это просто переменная или константа
-        return Dict("value" => expr, "childs" => [])
+        # Базовый случай - это переменная
+        return Dict("value" => expr, "childs" => [], "is_variable" => true)
     end
 end
+
 
 # Функция для разбивки аргументов по запятым
 function split_args_demo(args::String)
@@ -77,6 +77,7 @@ function split_args_demo(args::String)
     return result
 end
 
+
 # Функция для парсинга строки интерпретаций
 function parse_interpret_string_demo(interpret_string::String)
     interpretations = split(interpret_string, '\n') |> filter(!isempty)
@@ -85,10 +86,16 @@ function parse_interpret_string_demo(interpret_string::String)
     for interpretation in interpretations
         left, right = split(interpretation, "=") |> x -> strip.(x)
         func_name, args = match(r"(\w+)\((.*)\)", left).captures
-        variables = split(args, ",") |> x -> strip.(x)
+        args = strip(args)
+        if isempty(args)
+            variables = []
+        else
+            variables = split(args, ",") |> x -> strip.(x)
+        end
         expression = "($right)"
         push!(functions, Dict("name" => func_name, "variables" => variables, "expression" => expression))
     end
 
     return JSON.json(Dict("functions" => functions))
 end
+

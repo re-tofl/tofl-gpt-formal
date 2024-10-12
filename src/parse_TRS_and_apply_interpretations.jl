@@ -12,34 +12,33 @@ Base.showerror(io::IO, e::MissingJSONField) = print(io, "JSON поле $(e.field
 
 ### Функция для применения интерпретаций
 function apply_interpretation(term, interpretations)::String
-    if isempty(term.childs)
-        # Если это переменная, возвращаем ее имя
+    if haskey(interpretations, term.name)
+        interpreted_childs = [apply_interpretation(child, interpretations) for child ∈ term.childs]
+        interp_func = interpretations[term.name]
+        # Вызываем функцию интерпретации с подставленными дочерними термами
+        return interp_func(interpreted_childs...)
+    elseif term.is_variable
+        # Это переменная
         return term.name
     else
-        # Применяем интерпретацию для функции
+        # Реконструируем терм без интерпретации
         interpreted_childs = [apply_interpretation(child, interpretations) for child ∈ term.childs]
-        if haskey(interpretations, term.name)
-            interp_func = interpretations[term.name]
-            # Вызываем функцию интерпретации с подставленными дочерними термами
-            return interp_func(interpreted_childs...)
-        else
-            return "$(term.name)(" * join(interpreted_childs, ", ") * ")"
-        end
+        return isempty(interpreted_childs) ? term.name : "$(term.name)(" * join(interpreted_childs, ", ") * ")"
     end
 end
+
 
 ### Функция для переименования переменных в TRS
 function renamevars!(term1, term2, renamefunc)
     rename! = function (t)
-        if isempty(t.childs)
+        if t.is_variable
             t.name = renamefunc(t.name)
-        else
-            foreach(rename!, t.childs)
         end
+        foreach(rename!, t.childs)
     end
-
     foreach(rename!, (term1, term2))
 end
+
 
 ### Разделяет переменные в каждом выражении, добавляя индекс
 function separatevars!(term_pairs)
@@ -61,6 +60,7 @@ function collect_vars(term)
     result
 end
 
+
 ### Возвращает вектор переменных и вектор полимномов, всё в виде строк
 function get_term_pairs_from_JSON(json_TRS_string)
     parsed_json = JSON.parse(json_TRS_string)
@@ -81,6 +81,7 @@ function get_term_pairs_from_JSON(json_TRS_string)
     end
     term_pairs
 end
+
 
 function parse_and_interpret(term_pairs, interpretations)
     variables_array = Vector()
@@ -143,13 +144,14 @@ function parse_interpretations(json_interpret_string)
         variables = func["variables"]
         expression = func["expression"]
 
-        # Создаем функцию с необходимым количеством переменных
         interpretations[func_name] = (vars...) -> begin
             expr = expression
-            # Заменяем переменные в выражении на соответствующие переменные из TRS
-            for (i, var) ∈ enumerate(variables)
-                # Используем регулярные выражения для замены целых слов
-                expr = replace(expr, Regex("\\b$(var)\\b") => vars[i])
+            # Проверяем, есть ли переменные для замены
+            if !isempty(variables)
+                # Заменяем переменные в выражении на соответствующие значения из vars
+                for (i, var) ∈ enumerate(variables)
+                    expr = replace(expr, Regex("\\b$(var)\\b") => vars[i])
+                end
             end
             return expr
         end
@@ -161,9 +163,9 @@ end
 
 function make_term_from_json(json::Dict)
     childs = [make_term_from_json(child) for child ∈ json["childs"]]
-    return Term(json["value"], childs)
+    is_variable = haskey(json, "is_variable") ? json["is_variable"] : isempty(childs)
+    return Term(json["value"], childs, is_variable)
 end
-
 
 
 ### Возвращает вектор строк правил TRS
