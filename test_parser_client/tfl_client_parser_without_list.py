@@ -6,7 +6,20 @@ url_interpretations = 'http://localhost:8081/interpretations'
 url_trs = 'http://localhost:8081/trs'
 
 # Первый JSON с данными интерпретаций
-interpretations_data = {}
+interpretations_data = {
+    "functions": [
+        {
+            "name": "f",
+            "variables": ["x", "y"],
+            "expression": "(x * y)"
+        },
+        {
+            "name": "k",
+            "variables": [],
+            "expression": "(5)"
+        }
+    ]
+}
 
 # Второй JSON с данными TRS
 trs_data = [
@@ -19,33 +32,14 @@ trs_data = [
                     "childs": []
                 },
                 {
-                    "value": "h",
-                    "childs": [
-                        {
-                            "value": "x",
-                            "childs": []
-                        }
-                    ]
+                    "value": "y",
+                    "childs": []
                 }
             ]
         },
         "right": {
-            "value": "h",
-            "childs": [
-                {
-                    "value": "f",
-                    "childs": [
-                        {
-                            "value": "x",
-                            "childs": []
-                        },
-                        {
-                            "value": "y",
-                            "childs": []
-                        }
-                    ]
-                }
-            ]
+            "value": "k",
+            "childs": []
         }
     }
 ]
