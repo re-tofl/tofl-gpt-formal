@@ -89,11 +89,23 @@ function build_example_term(term_pairs)
     root
 end
 
+function terms_are_equal(first, second)
+    if (isempty(first.childs) && !isempty(second.childs)) || (!isempty(first.childs) && isempty(second.childs)) 
+        return false
+    elseif isempty(first.childs) && isempty(second.childs)
+        return (first.name == second.name) && (first.is_variable == second.is_variable)
+    else
+        
+        return ((first.name == second.name) && (first.is_variable == second.is_variable) && 
+        (length(first.childs) == length(second.childs)) &&
+        all(map(((x, y),) -> terms_are_equal(x, y), zip(first.childs, second.childs))))
+    end
+end
+
 function bind_terms!(TRS_term, term, binding_map)::Bool
     TRS_term.name ≠ term.name && return false
 
     arguments_relation = zip(TRS_term.childs, term.childs)
-    
     for args ∈ arguments_relation
         if !isempty(args[1].childs)
             if args[1].name ≠ args[2].name
@@ -101,8 +113,8 @@ function bind_terms!(TRS_term, term, binding_map)::Bool
             end
             return bind_terms!(args[1], args[2], binding_map)
         else
-            if haskey(binding_map, args[1])
-                binding_map[args[1].name] ≠ args[2] && return false
+            if haskey(binding_map, args[1].name)
+                !terms_are_equal(binding_map[args[1].name], args[2]) && return false
             else
                 binding_map[args[1].name] = args[2]
             end
@@ -113,8 +125,11 @@ end
 
 function rewrite_term(term, term_pairs)
     function rename_leaves(inner_term, var_map)
-        if isempty(inner_term.childs)
+        if (isempty(inner_term.childs) && inner_term.is_variable &&
+            haskey(var_map, inner_term.name))
             var_map[inner_term.name]
+        elseif isempty(inner_term.childs)
+            inner_term
         else
             Term(inner_term.name, map(
                 x -> rename_leaves(x, var_map),
@@ -136,7 +151,11 @@ function rewrite_term(term, term_pairs)
                     ok = bind_terms!(args[1], args[2], arguments_map)
                     ok || @goto outer_end
                 else
-                    arguments_map[args[1].name] = args[2]
+                    if haskey(arguments_map, args[1].name)
+                        terms_are_equal(arguments_map[args[1].name], args[2]) || @goto outer_end
+                    else
+                        arguments_map[args[1].name] = args[2]
+                    end
                 end
             end
             term = rename_leaves(right_part, arguments_map)
