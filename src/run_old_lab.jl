@@ -142,11 +142,19 @@ end
 
 ### Для строкового представления слагаемых
 function add_monom(result_string_part, var, coef)
-    if result_string_part == ""
-        result_string_part  *= "$coef" * ((var == "") ? "" : " * " * var)
-    else
-        result_string_part  *= " + " * "$coef" * ((var == "") ? "" : " * " * var)
+    if coef == "0"
+        return result_string_part
     end
+    if result_string_part != ""
+        result_string_part  *= " + " 
+    end
+
+    if (coef == "1") && (var != "")
+        result_string_part  *= var
+    else
+        result_string_part  *= "$coef" * ((var == "") ? "" : " * " * var)
+    end
+
     return result_string_part
 end
 
